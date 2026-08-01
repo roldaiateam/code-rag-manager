@@ -23,6 +23,16 @@ def format_search_results(results: list[SearchResult]) -> str:
     return "\n".join(lines)
 
 
+def format_included(included: dict) -> str:
+    """Coletilla informativa sobre chunks indexados fuera de git ls-files."""
+    parts = []
+    if included.get("auto"):
+        parts.append(f"auto-incluido código generado: {included['auto']} chunks")
+    if included.get("extra"):
+        parts.append(f"incluido por --include: {included['extra']} chunks")
+    return f"  ({'; '.join(parts)})" if parts else ""
+
+
 def format_chain(entries: list[dict]) -> str:
     if not entries:
         return "Sin dependencias encontradas para ese símbolo (¿está indexado?)."
@@ -36,13 +46,19 @@ def format_chain(entries: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def format_chunks(chunks: list[CodeChunk]) -> str:
+def format_chunks(chunks: list[CodeChunk], max_rows: int = 200) -> str:
     if not chunks:
         return "No hay chunks indexados con esos filtros."
-    return "\n".join(
+    rows = [
         f"{c.file_path}:{c.start_line}-{c.end_line}  {c.kind:<9} {c.symbol} ({c.language})"
-        for c in chunks
-    )
+        for c in chunks[:max_rows]
+    ]
+    if len(chunks) > max_rows:
+        rows.append(
+            f"[mostrando {max_rows} de {len(chunks)} chunks; "
+            "filtra con language/kind para acotar el listado]"
+        )
+    return "\n".join(rows)
 
 
 def format_stats(stats: dict) -> str:

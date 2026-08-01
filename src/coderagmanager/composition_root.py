@@ -16,6 +16,7 @@ from coderagmanager.adapters.parsers.tree_sitter_java import TreeSitterJavaParse
 from coderagmanager.adapters.parsers.tree_sitter_javascript import (
     TreeSitterJavaScriptParser,
 )
+from coderagmanager.adapters.parsers.skeleton import skeletonize
 from coderagmanager.adapters.parsers.tree_sitter_python import TreeSitterPythonParser
 from coderagmanager.adapters.registry.yaml_project_registry import (
     DEFAULT_REGISTRY_PATH,
@@ -86,10 +87,12 @@ def build_use_cases(project_id: str, registry_path: str | None = None) -> dict:
             graph_store=graph_store,
             lexical_index=lexical_index,
             git=git,
+            extra_index_paths=project.extra_index_paths,
+            auto_include=project.auto_include,
         ),
         "search_code": SearchCode(project.id, embedder, vector_store, lexical_index),
         "get_dependency_chain": GetDependencyChain(project.id, graph_store),
-        "get_source": GetSource(project.id, vector_store),
+        "get_source": GetSource(project.id, vector_store, skeletonizer=skeletonize),
         "list_chunks": ListChunks(project.id, vector_store),
         "get_index_stats": GetIndexStats(project.id, project.root_path, vector_store),
     }

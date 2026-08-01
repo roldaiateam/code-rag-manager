@@ -69,3 +69,21 @@ def test_chunks_receive_embeddings(tmp_path):
     vector_store = FakeVectorStore()
     build(str(tmp_path), vector_store).execute()
     assert all(c.embedding is not None for c in vector_store.data["demo"])
+
+
+def test_auto_included_generated_code_is_indexed_and_reported(tmp_path):
+    import subprocess
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / ".gitignore").write_text("target/\n")
+    (tmp_path / "a.py").write_text("def visible():\n    return 1\n")
+    generated = tmp_path / "target" / "generated-sources" / "openapi"
+    generated.mkdir(parents=True)
+    (generated / "gen.py").write_text("def generado():\n    return 2\n")
+
+    vector_store = FakeVectorStore()
+    stats = build(str(tmp_path), vector_store).execute()
+
+    symbols = {c.symbol for c in vector_store.data["demo"]}
+    assert {"visible", "generado"} <= symbols
+    assert stats.included == {"auto": 1}

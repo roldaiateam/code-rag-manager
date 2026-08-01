@@ -47,6 +47,8 @@ class Project:
     languages: list[str]
     last_indexed_commit: str | None = None
     last_indexed_at: str | None = None
+    extra_index_paths: list[str] = field(default_factory=list)
+    auto_include: bool = True    # detectar código generado (Maven/Gradle) aunque esté gitignorado
 
 
 @dataclass(frozen=True)
@@ -68,6 +70,8 @@ class SearchResult:
 class IndexStats:
     total_chunks: int
     total_edges: int
+    # chunks aportados por fuentes fuera de git ls-files: {"auto": n, "extra": m}
+    included: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

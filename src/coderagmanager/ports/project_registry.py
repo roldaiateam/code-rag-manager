@@ -6,7 +6,14 @@ from coderagmanager.domain.models import Project
 
 
 class ProjectRegistry(Protocol):
-    def register(self, name: str, root_path: str, languages: list[str]) -> Project: ...
+    def register(
+        self,
+        name: str,
+        root_path: str,
+        languages: list[str],
+        extra_index_paths: list[str] | None = None,
+        auto_include: bool = True,
+    ) -> Project: ...
 
     def get(self, project_id: str) -> Project: ...
 

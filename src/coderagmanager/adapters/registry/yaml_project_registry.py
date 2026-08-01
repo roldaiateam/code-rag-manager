@@ -29,7 +29,14 @@ class YamlProjectRegistry:
         with open(self._path, "w", encoding="utf-8") as fh:
             yaml.safe_dump(data, fh, sort_keys=True, allow_unicode=True)
 
-    def register(self, name: str, root_path: str, languages: list[str]) -> Project:
+    def register(
+        self,
+        name: str,
+        root_path: str,
+        languages: list[str],
+        extra_index_paths: list[str] | None = None,
+        auto_include: bool = True,
+    ) -> Project:
         project_id = re.sub(r"[^a-z0-9_-]+", "-", name.lower()).strip("-")
         if not project_id:
             raise ValueError(f"Nombre de proyecto inválido: '{name}'")
@@ -41,6 +48,8 @@ class YamlProjectRegistry:
             "name": name,
             "root_path": root_path,
             "languages": languages,
+            "extra_index_paths": list(extra_index_paths or []),
+            "auto_include": auto_include,
             "last_indexed_commit": None,
             "last_indexed_at": None,
         }
@@ -58,6 +67,8 @@ class YamlProjectRegistry:
             languages=entry.get("languages", []),
             last_indexed_commit=entry.get("last_indexed_commit"),
             last_indexed_at=entry.get("last_indexed_at"),
+            extra_index_paths=entry.get("extra_index_paths", []),
+            auto_include=entry.get("auto_include", True),
         )
 
     def list(self) -> list[Project]:

@@ -68,9 +68,14 @@ def build_server(project_id: str, registry_path: str | None = None) -> MCPServer
         end_line: int | None = None,
     ) -> str:
         """Lee el código fuente real de un chunk indexado. Usar DESPUÉS de
-        search_code o get_dependency_chain, cuando haga falta ver la
-        implementación completa. Indica 'symbol' o 'file_path' (con rango de
-        líneas opcional)."""
+        search_code o get_dependency_chain. Indica 'symbol' o 'file_path'
+        (con rango de líneas opcional).
+
+        Las clases largas se devuelven como ESQUELETO (firmas y anotaciones,
+        cuerpos omitidos) y el resto de chunks largos, truncados — en ambos
+        casos la respuesta incluye la llamada exacta (con start_line/end_line)
+        para pedir el fragmento completo que necesites. Sigue esa instrucción
+        tal cual cuando necesites más contexto."""
         if symbol is None and file_path is None:
             raise ValueError("Debes indicar 'symbol' o 'file_path'.")
         return uc["get_source"].execute(symbol, file_path, start_line, end_line)
@@ -79,7 +84,8 @@ def build_server(project_id: str, registry_path: str | None = None) -> MCPServer
     def list_chunks(language: str | None = None, kind: str | None = None) -> str:
         """Inventario filtrado de los chunks indexados en este proyecto.
         Útil para ver qué hay indexado; para buscar por significado usa
-        search_code."""
+        search_code. Se muestran como máximo 200 filas — usa los filtros
+        language/kind para acotar listados grandes."""
         return format_chunks(uc["list_chunks"].execute(language, kind))
 
     @mcp.tool()
@@ -94,12 +100,15 @@ def build_server(project_id: str, registry_path: str | None = None) -> MCPServer
         cambios locales sin commitear). Puede tardar en repos grandes."""
         from coderagmanager.application.manifest import read_manifest
 
+        from coderagmanager.adapters.formatting import format_included
+
         stats = uc["index_project"].execute()
         manifest = read_manifest(uc["project"].root_path)
         uc["registry"].mark_indexed(
             project_id, commit=manifest.last_indexed_commit if manifest else None
         )
-        return f"Reindexado: {stats.total_chunks} chunks, {stats.total_edges} aristas"
+        summary = f"Reindexado: {stats.total_chunks} chunks, {stats.total_edges} aristas"
+        return summary + format_included(stats.included)
 
     return mcp
 

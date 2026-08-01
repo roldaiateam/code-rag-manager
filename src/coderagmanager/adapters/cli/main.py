@@ -11,6 +11,7 @@ import typer
 
 from coderagmanager.adapters.formatting import (
     format_chunks,
+    format_included,
     format_search_results,
     format_stats,
 )
@@ -55,6 +56,9 @@ def _run_index(project: str) -> None:
         project, commit=manifest.last_indexed_commit if manifest else None
     )
     typer.echo(f"Indexado: {stats.total_chunks} chunks, {stats.total_edges} aristas")
+    extra_line = format_included(stats.included)
+    if extra_line:
+        typer.echo(extra_line)
 
 
 @app.command()
@@ -76,17 +80,36 @@ def project_add(
     language: list[str] = typer.Option(
         [], "--language", "-l", help="Lenguajes del proyecto (informativo)"
     ),
+    include: list[str] = typer.Option(
+        [],
+        "--include",
+        help="Glob (relativo a la raíz) a indexar aunque esté gitignorado; repetible",
+    ),
+    no_auto_include: bool = typer.Option(
+        False,
+        "--no-auto-include",
+        help="No detectar código generado (target/generated-sources, build/generated)",
+    ),
 ) -> None:
-    """Registra un proyecto en el registro global."""
+    """Registra un proyecto en el registro global (re-registrar un nombre existente
+    sobreescribe su configuración)."""
     from coderagmanager.composition_root import build_registry_use_cases
 
     try:
         project = build_registry_use_cases()["register_project"].execute(
-            name, path, list(language)
+            name,
+            path,
+            list(language),
+            extra_index_paths=list(include),
+            auto_include=not no_auto_include,
         )
     except ValueError as e:
         _fail(str(e))
     typer.echo(f"Proyecto '{project.id}' registrado en {project.root_path}")
+    if project.extra_index_paths:
+        typer.echo(f"  incluye además: {', '.join(project.extra_index_paths)}")
+    if not project.auto_include:
+        typer.echo("  auto-detección de código generado: desactivada")
 
 
 @project_app.command("list")

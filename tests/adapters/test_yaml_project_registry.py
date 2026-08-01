@@ -40,6 +40,30 @@ def test_mark_indexed_updates_fields(tmp_path):
     assert project.last_indexed_at is not None
 
 
+def test_extra_paths_and_auto_include_roundtrip(tmp_path):
+    registry = make_registry(tmp_path)
+    registry.register(
+        "demo", str(tmp_path), [],
+        extra_index_paths=["docs/**"], auto_include=False,
+    )
+    project = registry.get("demo")
+    assert project.extra_index_paths == ["docs/**"]
+    assert project.auto_include is False
+
+
+def test_legacy_entry_without_new_fields_gets_defaults(tmp_path):
+    path = tmp_path / "projects.yaml"
+    path.write_text(
+        "projects:\n"
+        "  viejo:\n"
+        f"    root_path: {tmp_path}\n"
+        "    languages: []\n"
+    )
+    project = YamlProjectRegistry(str(path)).get("viejo")
+    assert project.extra_index_paths == []
+    assert project.auto_include is True
+
+
 def test_defaults_roundtrip(tmp_path):
     registry = make_registry(tmp_path)
     assert registry.defaults()["embedding_provider"] == "local"

@@ -25,6 +25,8 @@ La primera indexación descarga el modelo de embeddings `all-MiniLM-L6-v2`
 ```bash
 crm init                                  # crea ~/.crm/projects.yaml
 crm project add mi-backend ~/repos/backend
+crm project add mi-api ~/repos/api --include "docs-internas/**"   # indexar rutas gitignoradas extra
+crm project add mi-lib ~/repos/lib --no-auto-include              # sin detección de código generado
 crm project list
 
 crm index --project mi-backend            # indexado SIEMPRE completo (drop-and-rebuild)
@@ -49,6 +51,14 @@ crm mcp install --client copilot --project mi-backend  # ~/.copilot/mcp-config.j
 Orden de uso recomendado para el agente: `get_index_stats` → `search_code` →
 `get_dependency_chain` → `get_source`, de lo general a lo específico.
 
+Respuestas acotadas: `get_source` devuelve las clases largas como **esqueleto**
+(firmas + anotaciones, cuerpos elididos vía tree-sitter) y trunca el resto de
+chunks largos — siempre con la llamada de continuación exacta
+(`get_source(file_path=..., start_line=..., end_line=...)`) incluida en la
+respuesta, nunca en silencio. `list_chunks` capa a 200 filas. Esto mantiene
+pequeño el contexto que carga el agente (el coste dominante en repos con
+código generado) sin impedirle pedir el fragmento completo cuando lo necesita.
+
 ## Arquitectura
 
 ```
@@ -69,6 +79,18 @@ src/coderagmanager/
 
 Estado por proyecto en `<repo>/.crm/` (tabla LanceDB + `graph.json` +
 `manifest.json`) — es caché reconstruible, se puede borrar y regenerar.
+
+### Código generado (proyectos contract-first)
+
+El descubrimiento de ficheros respeta `.gitignore`, pero **auto-detecta e
+indexa por convención** `**/target/generated-sources/` (Maven) y
+`**/build/generated/` (Gradle) aunque estén gitignorados — en proyectos
+OpenAPI contract-first ahí viven los DTOs/interfaces con las validaciones.
+El resumen del indexado informa de lo añadido
+(`(auto-incluido código generado: N chunks)`). Se desactiva con
+`--no-auto-include`; rutas no convencionales se añaden con `--include <glob>`.
+Regla práctica: *build primero, reindex después* (el índice refleja el
+generado existente en disco).
 
 ## CI
 

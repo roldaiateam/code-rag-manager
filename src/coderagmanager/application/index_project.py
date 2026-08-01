@@ -32,18 +32,27 @@ class IndexProject:
         graph_store: GraphStore,
         lexical_index: LexicalIndex,
         git: GitProvider,
+        extra_index_paths: list[str] | None = None,
+        auto_include: bool = True,
     ):
         self._project_id, self._root_path = project_id, root_path
         self._parser, self._embedder = parser, embedder
         self._vector_store, self._graph_store = vector_store, graph_store
         self._lexical_index, self._git = lexical_index, git
+        self._extra_index_paths = extra_index_paths or []
+        self._auto_include = auto_include
 
     def execute(self) -> IndexStats:
         self._vector_store.drop(self._project_id)
         self._graph_store.drop(self._project_id)
 
         chunks, edges = [], []
-        for file_path, source in discover_files(self._root_path):
+        included: dict[str, int] = {}
+        for file_path, source, origin in discover_files(
+            self._root_path,
+            extra_index_paths=self._extra_index_paths,
+            auto_include=self._auto_include,
+        ):
             if not self._parser.supports(file_path):
                 continue
             file_chunks, file_edges = self._parser.parse(
@@ -51,6 +60,8 @@ class IndexProject:
             )
             chunks.extend(file_chunks)
             edges.extend(file_edges)
+            if origin != "git" and file_chunks:
+                included[origin] = included.get(origin, 0) + len(file_chunks)
 
         edges = resolve_edges(chunks, edges)
 
@@ -74,4 +85,6 @@ class IndexProject:
                 total_edges=len(edges),
             ),
         )
-        return IndexStats(total_chunks=len(chunks), total_edges=len(edges))
+        return IndexStats(
+            total_chunks=len(chunks), total_edges=len(edges), included=included
+        )

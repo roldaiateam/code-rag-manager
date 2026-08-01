@@ -10,8 +10,19 @@ class RegisterProject:
     def __init__(self, registry: ProjectRegistry):
         self._registry = registry
 
-    def execute(self, name: str, root_path: str, languages: list[str]) -> Project:
-        return self._registry.register(name, root_path, languages)
+    def execute(
+        self,
+        name: str,
+        root_path: str,
+        languages: list[str],
+        extra_index_paths: list[str] | None = None,
+        auto_include: bool = True,
+    ) -> Project:
+        return self._registry.register(
+            name, root_path, languages,
+            extra_index_paths=extra_index_paths,
+            auto_include=auto_include,
+        )
 
 
 class ListProjects:
