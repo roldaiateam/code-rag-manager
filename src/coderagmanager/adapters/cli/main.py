@@ -235,8 +235,16 @@ def mcp_serve(project: str = PROJECT_OPTION) -> None:
 def mcp_install(
     client: str = typer.Option(..., "--client", help="claude | codex | copilot"),
     project: str = PROJECT_OPTION,
+    skip_claude_md: bool = typer.Option(
+        False,
+        "--skip-claude-md",
+        help="No añadir el bloque de adopción al CLAUDE.md del repo (solo cliente claude)",
+    ),
 ) -> None:
-    """Genera/actualiza la configuración MCP del cliente elegido para este proyecto."""
+    """Genera/actualiza la configuración MCP del cliente elegido para este proyecto.
+
+    Con --client claude añade además un bloque (idempotente) al CLAUDE.md del
+    repo indicando al agente que prefiera las tools del índice para explorar código."""
     from coderagmanager.adapters.mcp.client_configs.writers import build_writer
     from coderagmanager.composition_root import build_registry
 
@@ -247,6 +255,13 @@ def mcp_install(
         _fail(str(e))
     path = writer.install(project)
     typer.echo(f"Configuración MCP '{'crm-' + project}' escrita en {path}")
+    if client == "claude" and not skip_claude_md:
+        from coderagmanager.adapters.mcp.client_configs.claude_md import (
+            upsert_claude_md_block,
+        )
+
+        md_path = upsert_claude_md_block(registered.root_path, project)
+        typer.echo(f"Bloque de adopción actualizado en {md_path}")
 
 
 @config_app.command("show")
