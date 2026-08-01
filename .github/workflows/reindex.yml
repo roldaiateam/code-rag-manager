@@ -1,0 +1,38 @@
+# Plantilla de reindexado automático (FINAL-DESIGN §12).
+# Copia este fichero al repo que quieras indexar. Sin incremental → sin
+# fetch-depth:0 ni restauración de índice previo. Sin embeddings de pago → sin secrets.
+name: Reindex code-RAG
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar coderagmanager
+        run: pip install coderagmanager
+
+      - name: Registrar e indexar (reconstrucción completa)
+        run: |
+          crm project add ci .
+          crm index --project ci
+
+      - name: Publicar índice actualizado
+        run: |
+          git config user.name "crm-bot"
+          git config user.email "crm-bot@users.noreply.github.com"
+          git checkout -B crm-index
+          git add -f .crm
+          git commit -m "chore: reindex $(git rev-parse --short HEAD)" || echo "sin cambios"
+          git push origin crm-index --force

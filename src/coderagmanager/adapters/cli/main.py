@@ -1,0 +1,248 @@
+"""CLI `crm`: fachada delgada sobre los casos de uso — parsea argumentos,
+construye vía composition_root, ejecuta y formatea la salida. Sin lógica de
+negocio."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+
+import typer
+
+from coderagmanager.adapters.formatting import (
+    format_chunks,
+    format_search_results,
+    format_stats,
+)
+from coderagmanager.domain.errors import ProjectNotFoundError
+from coderagmanager.domain.models import SearchQuery
+
+app = typer.Typer(name="crm", no_args_is_help=True, add_completion=False)
+project_app = typer.Typer(no_args_is_help=True)
+index_app = typer.Typer()
+mcp_app = typer.Typer(no_args_is_help=True)
+config_app = typer.Typer(no_args_is_help=True)
+app.add_typer(project_app, name="project", help="Gestión del registro de proyectos")
+app.add_typer(index_app, name="index", help="Indexado (siempre completo) y sincronización")
+app.add_typer(mcp_app, name="mcp", help="Servidor MCP e integración con clientes")
+app.add_typer(config_app, name="config", help="Configuración global")
+
+PROJECT_OPTION = typer.Option(..., "--project", help="Id del proyecto registrado")
+
+
+def _fail(message: str) -> None:
+    typer.secho(f"Error: {message}", fg=typer.colors.RED, err=True)
+    raise typer.Exit(code=1)
+
+
+def _use_cases(project: str) -> dict:
+    from coderagmanager.composition_root import build_use_cases
+
+    try:
+        return build_use_cases(project)
+    except ProjectNotFoundError as e:
+        _fail(f"{e} Usa 'crm project list' para ver los disponibles.")
+
+
+def _run_index(project: str) -> None:
+    from coderagmanager.application.manifest import read_manifest
+
+    uc = _use_cases(project)
+    typer.echo(f"Indexando '{project}' (reconstrucción completa)...")
+    stats = uc["index_project"].execute()
+    manifest = read_manifest(uc["project"].root_path)
+    uc["registry"].mark_indexed(
+        project, commit=manifest.last_indexed_commit if manifest else None
+    )
+    typer.echo(f"Indexado: {stats.total_chunks} chunks, {stats.total_edges} aristas")
+
+
+@app.command()
+def init() -> None:
+    """Crea ~/.crm/ y el registro de proyectos si no existen."""
+    from coderagmanager.composition_root import build_registry
+
+    registry = build_registry()
+    registry.set_default(
+        "embedding_provider", registry.defaults().get("embedding_provider", "local")
+    )
+    typer.echo("Registro global inicializado en ~/.crm/projects.yaml")
+
+
+@project_app.command("add")
+def project_add(
+    name: str,
+    path: str,
+    language: list[str] = typer.Option(
+        [], "--language", "-l", help="Lenguajes del proyecto (informativo)"
+    ),
+) -> None:
+    """Registra un proyecto en el registro global."""
+    from coderagmanager.composition_root import build_registry_use_cases
+
+    try:
+        project = build_registry_use_cases()["register_project"].execute(
+            name, path, list(language)
+        )
+    except ValueError as e:
+        _fail(str(e))
+    typer.echo(f"Proyecto '{project.id}' registrado en {project.root_path}")
+
+
+@project_app.command("list")
+def project_list() -> None:
+    """Lista los proyectos registrados y su estado de indexado."""
+    from coderagmanager.composition_root import build_registry_use_cases
+
+    projects = build_registry_use_cases()["list_projects"].execute()
+    if not projects:
+        typer.echo("No hay proyectos registrados. Usa 'crm project add <nombre> <ruta>'.")
+        return
+    for p in projects:
+        indexed = p.last_indexed_at or "nunca indexado"
+        typer.echo(f"{p.id:<20} {p.root_path}  ({indexed})")
+
+
+@project_app.command("remove")
+def project_remove(name: str) -> None:
+    """Elimina un proyecto del registro (no borra su índice .crm/)."""
+    from coderagmanager.composition_root import build_registry_use_cases
+
+    try:
+        build_registry_use_cases()["remove_project"].execute(name)
+    except ProjectNotFoundError as e:
+        _fail(str(e))
+    typer.echo(f"Proyecto '{name}' eliminado del registro.")
+
+
+@index_app.callback(invoke_without_command=True)
+def index_main(
+    ctx: typer.Context,
+    project: str = typer.Option(None, "--project", help="Id del proyecto registrado"),
+) -> None:
+    """`crm index --project <id>`: indexado completo (drop-and-rebuild)."""
+    if ctx.invoked_subcommand is not None:
+        return
+    if project is None:
+        _fail("falta --project. Uso: crm index --project <id>")
+    _run_index(project)
+
+
+@index_app.command("pull")
+def index_pull(project: str = PROJECT_OPTION) -> None:
+    """Trae el índice publicado por CI (rama crm-index) al árbol de trabajo local."""
+    from coderagmanager.composition_root import build_registry
+
+    try:
+        root = build_registry().get(project).root_path
+    except ProjectNotFoundError as e:
+        _fail(str(e))
+    fetch = subprocess.run(
+        ["git", "-C", root, "fetch", "origin", "crm-index"],
+        capture_output=True, text=True,
+    )
+    if fetch.returncode != 0:
+        _fail(
+            "no se pudo hacer fetch de la rama 'crm-index' "
+            f"(¿existe en el remoto? ¿es un repo git?):\n{fetch.stderr.strip()}"
+        )
+    restore = subprocess.run(
+        ["git", "-C", root, "restore", "--source=FETCH_HEAD", "--worktree", "--", ".crm"],
+        capture_output=True, text=True,
+    )
+    if restore.returncode != 0:
+        _fail(f"la rama crm-index no contiene .crm/:\n{restore.stderr.strip()}")
+    typer.echo(f"Índice actualizado desde origin/crm-index en {os.path.join(root, '.crm')}")
+
+
+@app.command()
+def reindex(project: str = PROJECT_OPTION) -> None:
+    """Alias de 'crm index': el reindexado es siempre completo."""
+    _run_index(project)
+
+
+@app.command()
+def search(
+    query: str,
+    project: str = PROJECT_OPTION,
+    top_k: int = typer.Option(10, "--top-k"),
+    language: str = typer.Option(None, "--language"),
+    kind: str = typer.Option(None, "--kind"),
+) -> None:
+    """Búsqueda híbrida de depuración, sin pasar por MCP."""
+    uc = _use_cases(project)
+    results = uc["search_code"].execute(
+        SearchQuery(text=query, top_k=top_k, language=language, kind=kind)
+    )
+    typer.echo(format_search_results(results))
+
+
+@app.command()
+def stats(project: str = PROJECT_OPTION) -> None:
+    """Equivalente CLI de la tool MCP get_index_stats."""
+    uc = _use_cases(project)
+    typer.echo(format_stats(uc["get_index_stats"].execute()))
+
+
+@app.command()
+def chunks(
+    project: str = PROJECT_OPTION,
+    language: str = typer.Option(None, "--language"),
+    kind: str = typer.Option(None, "--kind"),
+) -> None:
+    """Inventario de chunks indexados (equivalente CLI de list_chunks)."""
+    uc = _use_cases(project)
+    typer.echo(format_chunks(uc["list_chunks"].execute(language, kind)))
+
+
+@mcp_app.command("serve")
+def mcp_serve(project: str = PROJECT_OPTION) -> None:
+    """Arranca el servidor MCP por stdio, atado a un único proyecto."""
+    from coderagmanager.adapters.mcp.server import serve
+    from coderagmanager.composition_root import build_registry
+
+    try:
+        build_registry().get(project)  # falla pronto si no está registrado
+    except ProjectNotFoundError as e:
+        _fail(str(e))
+    serve(project)
+
+
+@mcp_app.command("install")
+def mcp_install(
+    client: str = typer.Option(..., "--client", help="claude | codex | copilot"),
+    project: str = PROJECT_OPTION,
+) -> None:
+    """Genera/actualiza la configuración MCP del cliente elegido para este proyecto."""
+    from coderagmanager.adapters.mcp.client_configs.writers import build_writer
+    from coderagmanager.composition_root import build_registry
+
+    try:
+        registered = build_registry().get(project)
+        writer = build_writer(client, registered.root_path)
+    except (ProjectNotFoundError, ValueError) as e:
+        _fail(str(e))
+    path = writer.install(project)
+    typer.echo(f"Configuración MCP '{'crm-' + project}' escrita en {path}")
+
+
+@config_app.command("show")
+def config_show() -> None:
+    """Muestra la configuración global efectiva."""
+    from coderagmanager.composition_root import build_registry
+
+    for key, value in sorted(build_registry().defaults().items()):
+        typer.echo(f"{key} = {value}")
+
+
+@config_app.command("set")
+def config_set(key: str, value: str) -> None:
+    """Fija un valor de configuración global (p.ej. embedding.provider local)."""
+    from coderagmanager.composition_root import build_registry
+
+    build_registry().set_default(key.replace(".", "_"), value)
+    typer.echo(f"{key} = {value}")
+
+
+if __name__ == "__main__":
+    app()
