@@ -16,16 +16,6 @@ duplicating rationale here.
       `origin` remote at `github.com:PauloFCO/code-rag-manager.git` — confirm
       its current visibility setting before/when flipping to public; not
       checkable from this environment).
-- [x] **Purge committed bytecode from git.** Done: `.gitignore` now covers
-      `__pycache__/`, `*.pyc`, `.venv/`, `.pytest_cache/`, `*.egg-info/`,
-      `.env`, and all 73 previously-tracked `.pyc` files were untracked with
-      `git rm -r --cached` (they stay on disk as local cache, just no longer
-      versioned).
-- [x] **Remove the checked-in test fixture index data.**
-      `tests/fixtures/sample_repo/.crm/` (a real LanceDB table +
-      `graph.json` + `manifest.json`) was confirmed unused — both
-      `test_index_project.py` and `test_json_graph_store.py` build their own
-      store under `tmp_path` — and has been deleted.
 
 ## 1. Security audit — result: no leaked secrets found, but confirm before publishing
 
@@ -39,16 +29,6 @@ usage found no `shell=True`, `eval`/`exec`, unsafe `yaml.load`, or path
 traversal outside the tool's own single-user local trust model (crm is a
 local CLI/MCP server run by its own user, not a multi-tenant service).
 
-- [x] `benchmarks/` (the raw benchmark bank + per-run results, which
-      reference the maintainer's own private repos) stays gitignored, as
-      confirmed by full-history audit. `html_benchmarks/dashboard_v1.html`
-      (the rendered dashboard) was reviewed manually — aggregate stats only,
-      no source code, no credentials, no local paths — and is being
-      published on purpose as a first public benchmark result. Not an
-      oversight.
-- [x] **Add a real `.gitignore`.** Done: added standard Python entries
-      (`__pycache__/`, `*.pyc`, `.venv/`, `.pytest_cache/`, `*.egg-info/`,
-      `.env`) alongside the pre-existing `benchmarks` line.
 - [ ] **Add a `SECURITY.md`** with a real reporting contact/process —
       `CONTRIBUTING.md` already flags this as unset.
 - [ ] Note for future review (not a current finding): the MCP server's
@@ -62,7 +42,7 @@ local CLI/MCP server run by its own user, not a multi-tenant service).
 - [ ] **Add `.github/workflows/ci.yml` that runs `pytest` (and lint, once
       adopted) on pull requests to this repo.** The only existing workflow,
       `reindex.yml`, is explicitly a template meant to be copied into repos
-      *indexed by* crm — it does not test crm itself. Neither
+      _indexed by_ crm — it does not test crm itself. Neither
       `docs_es/FINAL-DESIGN.md` nor `docs_es/10-github-actions.md` design a
       CI workflow for crm's own repo, so there's no existing spec to copy;
       this needs to be designed from scratch. `CONTRIBUTING.md` already
