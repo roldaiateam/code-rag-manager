@@ -101,3 +101,35 @@ gaps with a considered reason, not oversights:
       a `use_project` tool) instead of one process per project.
 - [ ] Real BM25 lexical retrieval instead of the current substring scorer.
 - [ ] Scheduled/cron reindexing in the CI template.
+
+## 5. Known bugs
+
+- [ ] **`crm mcp install` writes a bare `"crm"` command, breaking clients
+      whose process doesn't inherit the install-time venv's `PATH`.**
+      `server_command()` in
+      `src/coderagmanager/adapters/mcp/client_configs/writers.py:19-20`
+      (shared by the Claude/Codex/Copilot writers) always returns the
+      literal string `"crm"`. GitHub Copilot CLI in particular spawns the
+      MCP server in its own process, which typically does not have the
+      project's venv on `PATH`, so it reports the `crm-<project>` server as
+      failed to start / no tools available. Fix: resolve an absolute path
+      at install time via `sysconfig.get_path("scripts")` (falling back to
+      `shutil.which("crm")`, then to the bare string) in `server_command()`,
+      plus a stderr warning in `mcp_install()`
+      (`src/coderagmanager/adapters/cli/main.py:234-264`) if no absolute
+      path could be resolved. Fixes Claude/Codex/Copilot installs at once
+      since all three call the same helper. Immediate workaround until
+      fixed: manually replace `"command": "crm"` with the absolute path
+      from `which crm` in the client's written config
+      (e.g. `~/.copilot/mcp-config.json`).
+- [ ] **`crm mcp serve` gives zero output on stdio, indistinguishable from a
+      hang when run manually.** `serve()` in
+      `src/coderagmanager/adapters/mcp/server.py:123-124` blocks on stdin
+      waiting for an MCP client's `initialize` handshake, which is correct
+      MCP stdio behavior, but nothing is printed to confirm the process
+      started (no logging anywhere in the codebase). Fix: print a one-line
+      stderr message on startup (never stdout, reserved for JSON-RPC)
+      confirming it's up and waiting for a client. Also clarify in
+      `README.md`'s Usage section (line 40) that `mcp serve` is meant to be
+      launched *by* an MCP client (via `mcp install`), not run standalone
+      in a terminal to test it.
