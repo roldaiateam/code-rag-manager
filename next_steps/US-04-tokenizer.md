@@ -19,6 +19,33 @@ vocabulary (inventory-management terms) and would not generalize across
 `crm`'s multi-project, multi-domain use case. See design doc §6.1 for the
 full reasoning.
 
+## Where and when this runs
+
+Two distinct moments, not one — consumers (US-05, US-11) must respect both:
+
+1. **Query side, on every single call.** `expand_query()` runs once per
+   `search_code`/`crm search` invocation, on the incoming query text only.
+   Cheap (one short string per call).
+2. **Chunk side, once per index build / process startup — never per query.**
+   `tokenize()` (no synonym expansion, see below) runs once over each
+   chunk's `symbol`/`file_path`/`source_text` when the index is built or the
+   MCP server/CLI process starts, and the resulting token sets are cached in
+   memory alongside the chunk data. For BM25 (US-11) this is mandatory
+   (IDF needs corpus-wide term statistics before anything can be scored);
+   for the simpler scorer (US-05) it isn't strictly required but avoids
+   re-tokenizing every chunk's `source_text` on every single query. **Not
+   persisted as a new artifact on disk** — same "rebuildable cache"
+   philosophy as the rest of `.crm/`: it's a cheap, deterministic derivation
+   from data (`source_text` etc.) that's already persisted.
+
+**Deliberate asymmetry: synonym expansion applies only to the query side,
+never to the chunk side** (`tokenize()` is called on both, `expand_query()`
+only on the query). Reason: if synonyms were baked into each chunk's cached
+tokens, adding a new project-specific `extra_synonyms` entry to
+`~/.crm/projects.yaml` would require a full reindex before it had any
+effect. Expanding only the query means a new synonym takes effect on the
+**next search**, with no reindex needed.
+
 ## Acceptance criteria
 
 - [ ] New pure module `src/coderagmanager/domain/tokenizer.py`, no new

@@ -25,7 +25,11 @@ chunk structure.
       `merge_and_rerank` vs. `VectorStore`/`LexicalIndex`.
 - [ ] Scoring uses `domain/tokenizer.py::expand_query()` (US-04) instead of
       raw substring splitting, so token-level (not just substring) matches
-      count.
+      count. Per US-04's "where and when": `expand_query()` runs once per
+      query call; each chunk's `symbol`/`file_path`/`source_text` is
+      tokenized via `tokenize()` **once, when the index is built/reloaded**,
+      and the resulting token sets are cached in memory alongside the
+      chunk — not re-tokenized on every search.
 - [ ] Signals scored, each via token-set overlap (not raw substring):
       `symbol` (highest weight, keep parity with US-01's 2.0/1.0/0.5 scale),
       `file_path`, `source_text`, plus **when available**: `role`/`layer`
