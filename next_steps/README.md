@@ -46,7 +46,10 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-15](US-15-project-groups.md)                     | Project `group` field + `--group` + `project list` column | Nivel 3             | —                   |        |
 | [US-16](US-16-search-related-projects-tool.md)       | `search_related_projects` MCP tool                        | Nivel 3             | US-15               |        |
 | [US-17](US-17-symbol-collision-warning.md)           | Symbol collision warning in federated results             | Nivel 3             | US-16               |        |
+| [US-18](US-18-query-type-tool-guidance.md)           | Query-type-aware tool guidance (docstrings + README)       | Documentation        | —                   |        |
 
 Tiers follow the roadmap in `PLAN-MEJORA-CODE-RAG-MANAGER.md §11`: Nivel 0 →
 Nivel 1 → Nivel 2 → indexing automation → Nivel 3. Within a tier, stories
-without a "depends on" entry can be picked up in any order.
+without a "depends on" entry can be picked up in any order. US-18 is
+cross-cutting (documentation only) and can be picked up independently of
+tier order, though it references US-02's behavior once that one lands.

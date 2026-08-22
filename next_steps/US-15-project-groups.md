@@ -21,24 +21,55 @@ new search capability (that's US-16).
 
 ## Acceptance criteria
 
-- [ ] `Project` domain model gains `group: str | None = None`.
+- [ ] `Project` domain model gains `group: str | None = None`, appended
+      **as the last field** of the dataclass (after `auto_include`) — never
+      inserted mid-sequence, to avoid shifting any positional (non-keyword)
+      construction of `Project` elsewhere.
 - [ ] `crm project add` gains `--group <name>` (`typer.Option(None,
       "--group")`). Help text: *"Name of the related-projects group (share
       the same name across multiple 'crm project add' calls to relate them);
-      enables cross-project search scoped only to this group."*
+      enables cross-project search scoped only to this group. Re-registering
+      an existing project without repeating --group clears it (same
+      overwrite-on-re-register behavior as the rest of this command)."*
 - [ ] Persisted in `~/.crm/projects.yaml` alongside existing per-project
-      fields (`extra_index_paths`, `auto_include`) — no new port, same
-      `ProjectRegistry`/`YamlProjectRegistry`.
+      fields (`extra_index_paths`, `auto_include`) — no new port change
+      beyond the two below.
+- [ ] `ProjectRegistry.register()` (both the `Protocol` in
+      `ports/project_registry.py` and the `YamlProjectRegistry` adapter)
+      gains an explicit `group: str | None = None` parameter, threaded
+      through into the persisted dict — `YamlProjectRegistry.register()`
+      builds its entry dict field-by-field (no `dataclasses.asdict()`), so
+      `"group": group` must be added there explicitly or `--group` would be
+      silently accepted by the CLI and never actually persisted.
+- [ ] `YamlProjectRegistry.get()` reads the field as **`entry.get("group")`,
+      never `entry["group"]`** — the confirmed backward-compatibility
+      requirement: an existing `~/.crm/projects.yaml` written before this
+      feature has no `"group"` key for any project, and `entry["group"]`
+      would raise `KeyError` on every `crm project list`/`search`/etc. for
+      those pre-existing entries. Unit test: load a hand-written registry
+      fixture in the pre-this-feature format (no `group` key at all) and
+      assert `.get()`/`.list()` succeed with `group=None`, no exception.
 - [ ] Two projects with no `group`, or with different `group` values, are
       never included together by any future feature — this story's tests
       should assert `ProjectRegistry.list_by_group(name)` (new method)
       returns only exact matches, case-sensitive, no partial/fuzzy matching.
-- [ ] `crm project list` output gains a `group` column (blank/`—` when
-      unset).
+- [ ] `crm project list` output gains a `group` column, **appended at the
+      end of the existing line** (`f"{p.id:<20} {p.root_path}  ({indexed})"`
+      today) rather than inserted in the middle — minimizes disruption to
+      any existing ad-hoc parsing of this plain-text (non-JSON) output.
 - [ ] Docstrings/`--help` for `project_add` and `project_list` updated.
 - [ ] Unit tests: registering 3 projects with the same `--group`, listing
       them, confirming `list_by_group` isolation from a 4th ungrouped
-      project.
+      project; re-registering one of them without `--group` and confirming
+      its group is cleared (documented overwrite behavior, not a bug).
+
+**Note for US-16 (not this story's concern):** `tests/application/fakes.py`
+currently has no `FakeProjectRegistry` at all (only `FakeEmbedder`,
+`FakeVectorStore`, `FakeGraphStore`, `FakeLexicalIndex`, `FakeGit`) — so this
+story doesn't break any shared test fake. Whoever implements US-16 (which
+does need to exercise `list_by_group` at the application layer) will need to
+either add that fake or test against a real `YamlProjectRegistry` pointed at
+a temp file.
 
 ## Out of scope
 
