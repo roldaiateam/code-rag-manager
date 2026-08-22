@@ -14,6 +14,9 @@ end of the PR/repo for anything not yet settled.
 
 ## Ways to contribute
 
+- **Planned improvements** — see [`next_steps/`](next_steps/) for a
+  concrete, ready-to-implement backlog of user stories (see "Planned work"
+  below).
 - **Bug reports** — something doesn't behave as documented.
 - **Feature work** — new language parsers, embedding providers, MCP clients,
   or other adapters (the hexagonal architecture is designed to make these
@@ -22,6 +25,23 @@ end of the PR/repo for anything not yet settled.
 - **Benchmark contributions** — new evaluation questions and results.
 - **Documentation** — fixes or additions to `README.md` or the `docs_en/` /
   `docs_es/` guide.
+
+## Planned work (`next_steps/`)
+
+The [`next_steps/`](next_steps/) folder holds the current, concrete backlog:
+`next_steps/PLAN-MEJORA-CODE-RAG-MANAGER.md` is the design document behind
+it (rationale, theory, and every decision already made), and
+`next_steps/README.md` indexes the individual `US-NN-*.md` user stories
+derived from it — each one scoped, with acceptance criteria and a list of
+files it's expected to touch, so you can pick one up without having to
+reconstruct the design discussion yourself.
+
+This is a **temporary staging area, not a permanent backlog or a
+changelog**: once a story is implemented and merged, its `US-NN-*.md` file
+is deleted from `next_steps/` in the same PR (or a prompt follow-up), and the
+entry is removed from `next_steps/README.md`. If you're looking for
+well-scoped contribution opportunities, start there before opening a new
+issue from scratch.
 
 ## Development setup
 
