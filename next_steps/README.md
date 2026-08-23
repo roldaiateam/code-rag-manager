@@ -48,6 +48,7 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-17](US-17-symbol-collision-warning.md)           | Symbol collision warning in federated results                      | Nivel 3             | US-16               |        |
 | [US-18](US-18-query-type-tool-guidance.md)           | Query-type-aware tool guidance (docstrings + README)               | Documentation       | —                   |        |
 | [US-19](US-19-cli-i18n.md)                           | Internationalize CLI/MCP user-facing text (currently Spanish-only) | Documentation / DX  | —                   |        |
+| [US-20](US-20-project-local-scope-config.md)         | Project-local, git-committed include/exclude config (`.crm.yaml`)  | Indexing scope / DX | —                   |        |
 
 Tiers follow the roadmap in `PLAN-MEJORA-CODE-RAG-MANAGER.md §11`: Nivel 0 →
 Nivel 1 → Nivel 2 → indexing automation → Nivel 3. Within a tier, stories
