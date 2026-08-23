@@ -3,7 +3,7 @@
 **Tier:** Documentation / DX (cross-cutting) · **Depends on:** —
 **Design reference:** none — raised ad-hoc while onboarding a new
 contributor, not derived from `PLAN-MEJORA-CODE-RAG-MANAGER.md`. Flagged
-explicitly as going *against* the project's current convention (see
+explicitly as going _against_ the project's current convention (see
 Context), so it needs a maintainer decision before anyone picks it up.
 
 ## Story
@@ -35,7 +35,7 @@ is not. That asymmetry is exactly what prompted this story.
 
 **This is explicitly flagged as a debatable addition** (raised as a
 deliberately contrarian suggestion, not a validated need): the project's
-existing convention — commit messages, docstrings, `next_steps/*` prose vs.
+existing convention — commit messages, docstrings, `backlog/*` prose vs.
 in-repo Spanish strings — is mixed already, and full i18n has a real
 maintenance cost (every new string needs both locales kept in sync, tests
 need to assert against a stable key rather than literal Spanish text). A
@@ -60,7 +60,7 @@ like `CRM_LANG`?) before implementation starts.
       touches the same docstrings for a different reason and should land
       first or be coordinated with this one to avoid merge conflicts).
 - [ ] `domain/errors.py` exception messages are translatable without
-      breaking anything that currently matches on exception *type*
+      breaking anything that currently matches on exception _type_
       (`ProjectNotFoundError`) rather than message text — confirm no test
       or caller does string-matching on these messages today.
 - [ ] `README.md` documents the `CRM_LANG` option next to the existing

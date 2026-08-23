@@ -15,7 +15,7 @@ owner.
 **This story does not duplicate the bug descriptions** — they are already
 fully diagnosed, with exact file and line, in `code-rag-manager/TODO.md`
 section "5. Known bugs". This story exists only so the sweep has a trackable
-unit in `next_steps/`; the authoritative description stays in `TODO.md`.
+unit in `backlog/`; the authoritative description stays in `TODO.md`.
 
 ## Acceptance criteria
 
@@ -30,7 +30,7 @@ unit in `next_steps/`; the authoritative description stays in `TODO.md`.
       JSON-RPC) — see `TODO.md` for the exact location
       (`adapters/mcp/server.py:123-124`).
 - [ ] `README.md`'s Usage section is updated to clarify `mcp serve` is meant
-      to be launched *by* an MCP client, not run standalone in a terminal to
+      to be launched _by_ an MCP client, not run standalone in a terminal to
       test it (per `TODO.md`'s note).
 - [ ] Once both are fixed, remove the corresponding entries from
       `TODO.md`'s "5. Known bugs" section.
