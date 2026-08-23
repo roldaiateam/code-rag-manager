@@ -18,11 +18,25 @@ from coderagmanager.adapters.formatting import (
 from coderagmanager.domain.errors import ProjectNotFoundError
 from coderagmanager.domain.models import SearchQuery
 
-app = typer.Typer(name="crm", no_args_is_help=True, add_completion=False)
-project_app = typer.Typer(no_args_is_help=True)
-index_app = typer.Typer()
-mcp_app = typer.Typer(no_args_is_help=True)
-config_app = typer.Typer(no_args_is_help=True)
+GROUP_HELP_NOTE = (
+    "Nota: este --help es de nivel de grupo y solo lista subcomandos. Para ver "
+    "las opciones de uno concreto, baja un nivel más: 'crm <subcomando> --help'."
+)
+
+app = typer.Typer(
+    name="crm",
+    no_args_is_help=True,
+    add_completion=False,
+    epilog=(
+        "Nota: cada grupo (project, index, mcp, config) tiene su propio --help, "
+        "y cada subcomando el suyo. Para ver todas las opciones de un comando, "
+        "baja hasta el nivel hoja, p.ej. 'crm project add --help'."
+    ),
+)
+project_app = typer.Typer(no_args_is_help=True, epilog=GROUP_HELP_NOTE)
+index_app = typer.Typer(epilog=GROUP_HELP_NOTE)
+mcp_app = typer.Typer(no_args_is_help=True, epilog=GROUP_HELP_NOTE)
+config_app = typer.Typer(no_args_is_help=True, epilog=GROUP_HELP_NOTE)
 app.add_typer(project_app, name="project", help="Gestión del registro de proyectos")
 app.add_typer(index_app, name="index", help="Indexado (siempre completo) y sincronización")
 app.add_typer(mcp_app, name="mcp", help="Servidor MCP e integración con clientes")
