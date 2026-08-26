@@ -43,6 +43,26 @@ project's Java/Spring conventions).
       `layer=None`.
 - [ ] `--no-role-classification` flag (see US-09) also disables this layer,
       not just layers 2/3.
+- [ ] **`LanceDbVectorStore.upsert()` and `_to_chunk()`
+      (`adapters/storage/lancedb_vector_store.py`) are extended to persist
+      and reconstruct `layer`/`role`/`role_confidence`.** Confirmed by
+      reading the adapter: today's row dict only carries
+      `id/vector/symbol/language/kind/file_path/start_line/end_line/
+      source_text` — any new `CodeChunk` field added here would otherwise be
+      silently dropped the moment a chunk passes through `upsert()`, and
+      `search_code`/`list_chunks` would never see it, no matter how correct
+      the classifier itself is. This is the actual reason US-09's
+      `--role`/`--layer` filters can work at all — without this, US-09
+      would filter against fields that are always `None` once read back
+      from the index, regardless of what `index_project.py` computed.
+- [ ] Unit test proving the round trip: a chunk classified with a non-`None`
+      `layer` still has that `layer` after `vector_store.upsert()` +
+      `vector_store.list()` (not just asserted on the in-memory object
+      before it's ever persisted).
+- [ ] `JsonGraphStore` is **not** touched by this story — `graph_store.nodes()`
+      is only consumed by `get_dependency_chain`'s `describe()`, which is
+      out of scope for role/layer display (US-09 only wires the filter into
+      `search_code`/`list_chunks`, both backed by `vector_store`).
 
 ## Out of scope
 
@@ -54,4 +74,7 @@ project's Java/Spring conventions).
 - `src/coderagmanager/domain/models.py` (new `CodeChunk` fields)
 - `src/coderagmanager/domain/classification.py` (new)
 - `src/coderagmanager/application/index_project.py`
+- `src/coderagmanager/adapters/storage/lancedb_vector_store.py`
+  (persist/reconstruct the new fields — see acceptance criteria)
 - `tests/domain/test_classification.py` (new)
+- `tests/adapters/test_lancedb_vector_store.py` (round-trip test)

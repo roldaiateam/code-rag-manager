@@ -23,6 +23,20 @@ docstring says so deliberately, because v1 never reindexes incrementally.
 Comparing `HEAD` for a one-line staleness note is a read-only check and does
 not reopen that decision — it never diffs file contents or drives reindexing.
 
+**Confirmed, related bug in the same "how fresh is this?" territory**: `crm
+index pull` (`adapters/cli/main.py`, `index_pull`) restores `.crm/` from the
+`crm-index` branch via `git restore --worktree`, which refreshes
+`.crm/manifest.json` on disk — but **never calls `registry.mark_indexed()`**.
+`crm stats`/`get_index_stats` read `last_indexed_commit`/`last_indexed_at`
+from the manifest file (`read_manifest()`), so they show the fresh value
+after a pull; `crm project list` reads the same-named fields from
+`~/.crm/projects.yaml` (only updated by `mark_indexed()`, called by
+`_run_index()` — i.e. `crm index`/`crm reindex` — never by `index pull`), so
+it keeps showing the last *local* index (or "nunca indexado" if the project
+was only ever indexed by CI). Two commands, two different answers to "when
+was this last indexed" for the same project, right after the exact command
+whose entire job is to sync that fact down from CI.
+
 ## Acceptance criteria
 
 - [ ] `GitProvider` gains `is_dirty(repo_path: str) -> bool` (`git status
@@ -48,6 +62,15 @@ not reopen that decision — it never diffs file contents or drives reindexing.
       manifest commit != `HEAD` → note mentions staleness; dirty tree → note
       mentions uncommitted changes; no manifest → note says "not indexed
       yet".
+- [ ] `index_pull` (`adapters/cli/main.py`) calls `registry.mark_indexed()`
+      with the commit read from the freshly-restored `.crm/manifest.json`
+      after a successful `git restore`, so `crm project list` and `crm
+      stats` agree on `last_indexed_commit`/`last_indexed_at` immediately
+      after a pull — same call `_run_index()` already makes after a local
+      `crm index`, just triggered from the pull path too.
+- [ ] Integration test: after a simulated `index pull` (manifest restored
+      with a known commit), `crm project list`'s output and `crm stats`'
+      output report the same `last_indexed_commit`.
 
 ## Out of scope
 
@@ -62,5 +85,7 @@ not reopen that decision — it never diffs file contents or drives reindexing.
 - `src/coderagmanager/adapters/git/git_cli_provider.py`
 - `src/coderagmanager/application/index_staleness.py` (new)
 - `src/coderagmanager/adapters/mcp/server.py`
+- `src/coderagmanager/adapters/cli/main.py` (`index_pull`'s missing
+  `mark_indexed()` call)
 - `tests/application/`, `tests/adapters/` (fake `GitProvider` for the new
   method)

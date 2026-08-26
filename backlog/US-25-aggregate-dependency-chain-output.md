@@ -20,6 +20,19 @@ rows and tells the caller how to page (US-21). A symbol with many callers at
 `max_depth=3, direction="both"` can return a very long, unstructured list
 that the agent has to summarize itself in its own context window.
 
+**Second, separate problem confirmed in the same area**:
+`JsonGraphStore.dependency_chain()` (`adapters/storage/json_graph_store.py:79-88`)
+resolves the query's `symbol` argument by collecting **every** node whose
+`symbol` matches — `start_ids = [node_id for node_id, info in
+data["nodes"].items() if info["symbol"] == symbol]` — and runs the BFS from
+all of them at once, into one merged, undifferentiated result. If two chunks
+in the same project share a symbol name (e.g. a `validate` method in two
+unrelated classes — not exotic), `get_dependency_chain("validate")` silently
+interleaves both dependency graphs with no indication that two distinct
+symbols were matched. This is a query-time counterpart to US-23's
+index-time edge-resolution ambiguity, in a different code path (the BFS
+start-node lookup, not `resolve_edges`) — US-23 doesn't cover it.
+
 ## Acceptance criteria
 
 - [ ] `GetDependencyChain.execute()` (`application/get_dependency_chain.py`)
@@ -36,6 +49,20 @@ that the agent has to summarize itself in its own context window.
 - [ ] Unit test: a synthetic edge set across multiple files produces the
       expected per-file/per-type counts; an edge set containing an ambiguous
       edge is reported separately from exact ones.
+- [ ] `GetDependencyChain.execute()` detects multiple distinct start nodes
+      for the given `symbol` **without changing `GraphStore`'s port
+      signature**: it already fetches `graph_store.nodes(project_id)` for
+      `describe()` — reuse that same call to compute
+      `matching = [nid for nid, info in nodes.items() if info["symbol"] ==
+      symbol]` before calling `dependency_chain()`. When `len(matching) > 1`,
+      the summary block leads with an explicit warning naming every match's
+      `file_path`/`kind`, e.g. `"⚠ 'validate' matches 2 distinct symbols —
+      results below are merged across OrderService.java:42 and
+      UserService.java:110."` This is app-layer only; `JsonGraphStore`
+      itself is untouched.
+- [ ] Unit test: two fixture nodes sharing a symbol name trigger the
+      multi-match warning naming both locations; a symbol matching exactly
+      one node produces no such warning.
 
 ## Out of scope
 

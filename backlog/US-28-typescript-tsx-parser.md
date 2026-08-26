@@ -85,6 +85,25 @@ typescript` never returns anything, in any project.
       typed props/interfaces — closes the "zero TypeScript test coverage"
       gap confirmed during this audit (today the fixture repo has Python,
       one `.js`, and one `.java` file, but no `.ts`/`.tsx` at all).
+- [ ] **`adapters/parsers/skeleton.py` gains a `"typescript"` entry in
+      `_ELIDABLE`/`_BODY_PLACEHOLDER`/`_get_parser`.** Confirmed:
+      `skeleton.py` maintains its own hardcoded per-language registry,
+      entirely separate from `composition_root.build_parser()`'s parser
+      list, and `skeletonize()` returns `None` immediately for any
+      `language` not in `_ELIDABLE` (currently only `"java"`,
+      `"javascript"`, `"python"`). Without this, every `.ts`/`.tsx` chunk
+      with `kind="interface"`/`"class"` long enough to qualify for
+      `SKELETON_KINDS` (`application/get_source.py:13`) would silently fall
+      back to head-truncation instead of getting the skeleton view every
+      other supported language gets — the same class of gap this story
+      exists to close, just in a second hardcoded per-language spot.
+      `_ELIDABLE["typescript"]` should include at least
+      `{"method_definition", "function_declaration"}` (mirroring
+      `"javascript"`'s entry), and `_get_parser()` needs to import the
+      `tsx`/`typescript` grammar this story is already adding as a
+      dependency.
+- [ ] Unit test: a long `.tsx` interface/class chunk produces a non-`None`
+      skeleton via `get_source`'s existing skeleton path, not a truncation.
 
 ## Out of scope
 
@@ -105,5 +124,7 @@ typescript` never returns anything, in any project.
 - `src/coderagmanager/adapters/parsers/tree_sitter_javascript.py`
   (`EXTENSIONS` narrowed)
 - `src/coderagmanager/composition_root.py`
+- `src/coderagmanager/adapters/parsers/skeleton.py` (`"typescript"` entry)
 - `tests/fixtures/sample_repo/src/*.tsx` (new)
 - `tests/adapters/test_tree_sitter_typescript.py` (new)
+- `tests/adapters/test_skeleton.py` (TypeScript case)
