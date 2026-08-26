@@ -23,7 +23,10 @@ area for planned work, not a permanent backlog or a changelog — see
 4. Add/update tests per the project's existing split (`tests/domain/`,
    `tests/application/`, `tests/adapters/`).
 5. Open a PR referencing the story ID (e.g. "Implements US-01").
-6. Once merged, delete the story file in the same PR or a prompt follow-up.
+6. Once merged, delete the story file in the same PR or a prompt follow-up —
+   only once the acceptance criteria are demonstrably true (tests passing,
+   behavior confirmed), not merely once the PR merged. A checked box that
+   doesn't match reality is worse than an unchecked one.
 
 ## Backlog
 
@@ -50,9 +53,20 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-19](US-19-cli-i18n.md)                           | Internationalize CLI/MCP user-facing text (currently Spanish-only) | Documentation / DX  | —                   |        |
 | [US-20](US-20-project-local-scope-config.md)         | Project-local, git-committed include/exclude config (`.crm.yaml`)  | Indexing scope / DX | —                   |        |
 | [US-21](US-21-chunks-pagination.md)                  | Pagination for `crm chunks` / `list_chunks` (past the 200-row cap) | DX / debugging       | —                   |        |
+| [US-22](US-22-index-staleness-signal.md)             | Index staleness signal across MCP tools/CLI                        | Index reliability    | —                   |        |
+| [US-23](US-23-ambiguous-symbol-resolution.md)        | Flag ambiguous symbol resolution instead of guessing                | Index reliability    | —                   |        |
+| [US-24](US-24-cross-store-consistency-check.md)      | Cross-store consistency check (vector vs. graph chunk counts)      | Index reliability    | —                   |        |
+| [US-25](US-25-aggregate-dependency-chain-output.md)  | Aggregate `get_dependency_chain` output instead of a flat edge dump | Dependency graph UX  | US-23               |        |
+| [US-26](US-26-consumer-summary-tool.md)              | Consumer summary tool (`get_consumers`)                            | Dependency graph UX  | US-25               |        |
+| [US-27](US-27-copilot-project-scoped-config.md)      | Copilot MCP install writes a global config, leaking tools cross-project | MCP client integration (bug) | —          |        |
 
 Tiers follow the roadmap in `PLAN-MEJORA-CODE-RAG-MANAGER.md §11`: Nivel 0 →
 Nivel 1 → Nivel 2 → indexing automation → Nivel 3. Within a tier, stories
 without a "depends on" entry can be picked up in any order. US-18 is
 cross-cutting (documentation only) and can be picked up independently of
 tier order, though it references US-02's behavior once that one lands.
+US-22/23/24 (index reliability), US-25/26 (dependency graph UX), and US-27
+(MCP client integration bug) are also cross-cutting and outside that
+roadmap's tier order — none of them require any Nivel 1/2/3 work to land
+first. See US-11's "Priority note" for a possible resequencing worth
+revisiting once US-01 has shipped.

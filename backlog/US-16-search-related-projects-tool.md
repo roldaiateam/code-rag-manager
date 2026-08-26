@@ -47,6 +47,14 @@ time, never merges storage.
 - [ ] Every result in the formatted output is headed by a visible
       `[project_id]` tag in the text itself (not just a metadata field a
       reader could skim past).
+- [ ] The formatted output always states, in one line, which member projects
+      of the group were actually queried and which were skipped (and why —
+      e.g. "not indexed yet", "index failed to load"), e.g. `"Queried:
+      mic-clients, mic-inventory. Skipped: mic-notifications (not indexed
+      yet)."` This line is present even when every member was queried
+      successfully — an agent must be able to tell "searched all 3 of 3
+      group members" from the response text itself, never by inferring it
+      from an empty result set or an absent line.
 - [ ] `crm search "<query>" --related` CLI equivalent, for debugging outside
       MCP.
 - [ ] **`get_source` and `get_dependency_chain` are NOT modified by this
@@ -60,6 +68,10 @@ time, never merges storage.
 - [ ] Integration test: two fixture projects in the same group, a query
       whose answer only exists in one of them returns it labeled correctly;
       a project with no group exposes no such tool at all.
+- [ ] Integration test: a group with a member whose index can't be loaded
+      (or that has no manifest yet) still returns results from the other
+      members, and the "queried/skipped" line names that member explicitly
+      instead of the search silently returning fewer results than expected.
 
 ## Out of scope
 
