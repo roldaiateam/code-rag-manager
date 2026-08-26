@@ -62,14 +62,15 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-28](US-28-typescript-tsx-parser.md)              | Dedicated TypeScript/TSX parser (stop losing typed React components) | Language coverage    | —                   |        |
 | [US-29](US-29-css-parser.md)                         | Dedicated CSS parser (selectors/rules as structured chunks)        | Language coverage    | —                   |        |
 | [US-30](US-30-composite-parser-fallback.md)          | `CompositeLanguageParser` falls back to generic text instead of indexing nothing | Language coverage | —          |        |
+| [US-31](US-31-atomic-state-writes.md)                | Atomic writes for `graph.json`/`manifest.json`/`projects.yaml`     | Index reliability    | —                   |        |
 
 Tiers follow the roadmap in `PLAN-MEJORA-CODE-RAG-MANAGER.md §11`: Nivel 0 →
 Nivel 1 → Nivel 2 → indexing automation → Nivel 3. Within a tier, stories
 without a "depends on" entry can be picked up in any order. US-18 is
 cross-cutting (documentation only) and can be picked up independently of
 tier order, though it references US-02's behavior once that one lands.
-US-22/23/24 (index reliability), US-25/26 (dependency graph UX), US-27 (MCP
-client integration bug), and US-28/29/30 (language coverage) are also
+US-22/23/24/31 (index reliability), US-25/26 (dependency graph UX), US-27
+(MCP client integration bug), and US-28/29/30 (language coverage) are also
 cross-cutting and outside that roadmap's tier order — none of them require
 any Nivel 1/2/3 work to land first. See US-11's "Priority note" for a
 possible resequencing worth revisiting once US-01 has shipped.

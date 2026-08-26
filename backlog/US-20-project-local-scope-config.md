@@ -143,6 +143,12 @@ project root, alongside `.gitignore`, not inside `.crm/`.**
       code is documented as "just declare its path under `include:` in
       `.crm.yaml`," with the Maven/Gradle paths kept as the worked example
       (now as sample glob values, not as hardcoded detection logic).
+- [ ] While in `README.md` anyway: fix the broken link on line 4 —
+      `[../code-rag-guide/FINAL-DESIGN.md](../code-rag-guide/FINAL-DESIGN.md)`
+      resolves to `ai/code-rag-guide/`, which doesn't exist (confirmed —
+      only `code-rag-manager/`, `code-rag-mcp/`, and `ideas/` exist at that
+      level). Point it at the real location inside this repo instead:
+      `[docs_en/FINAL-DESIGN.md](docs_en/FINAL-DESIGN.md)`.
 - [ ] `docs_es/04-diseno-multi-proyecto.md` / `docs_en/04-diseno-multi-proyecto.md`
       and `FINAL-DESIGN.md` (both languages) are updated to describe
       `.crm.yaml`'s `include`/`exclude` instead of the old
