@@ -32,7 +32,7 @@ area for planned work, not a permanent backlog or a changelog — see
 
 | ID                                                   | Title                                                              | Tier                | Depends on          | Status |
 | ---------------------------------------------------- | ------------------------------------------------------------------ | ------------------- | ------------------- | ------ |
-| [US-01](US-01-lexical-source-text.md)                | Lexical search also over `source_text`                             | Nivel 0             | —                   |        |
+| [US-01](US-01-lexical-source-text.md)                | Lexical search also over `source_text`                             | Nivel 0             | —                   | Implemented, pending PR |
 | [US-02](US-02-confidence-threshold.md)               | Confidence threshold in `search_code`                              | Nivel 0             | US-01               |        |
 | [US-03](US-03-sweep-known-bugs.md)                   | Sweep the 2 known CLI/MCP bugs from `TODO.md`                      | Nivel 0             | —                   |        |
 | [US-04](US-04-tokenizer.md)                          | Shared tokenizer (split + stemming + synonyms)                     | Nivel 1             | —                   |        |

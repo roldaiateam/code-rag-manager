@@ -27,12 +27,15 @@ class SubstringLexicalIndex:
         for chunk in self._chunk_provider(project_id):
             symbol = chunk.symbol.lower()
             path = chunk.file_path.lower()
+            source = chunk.source_text.lower()
             score = 0.0
             for term in terms:
                 if term in symbol:
                     score += 2.0  # coincidencia en el símbolo pesa más que en la ruta
                 if term in path:
                     score += 1.0
+                if term in source:
+                    score += 0.5  # señal más débil: el término solo vive en el cuerpo
             if score > 0:
                 scored.append(
                     SearchResult(chunk=chunk, score=score, match_reason="lexical")
