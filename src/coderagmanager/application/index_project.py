@@ -11,6 +11,10 @@ from dataclasses import replace
 
 from coderagmanager.application.file_discovery import discover_files
 from coderagmanager.application.manifest import now_iso, write_manifest
+from coderagmanager.domain.classification import (
+    classify_kind_by_path,
+    classify_layer_by_path,
+)
 from coderagmanager.domain.models import IndexManifest, IndexStats
 from coderagmanager.domain.resolution import resolve_edges
 from coderagmanager.ports.embedding_provider import EmbeddingProvider
@@ -64,6 +68,15 @@ class IndexProject:
                 included[origin] = included.get(origin, 0) + len(file_chunks)
 
         edges = resolve_edges(chunks, edges)
+
+        chunks = [
+            replace(
+                c,
+                layer=classify_layer_by_path(c.file_path),
+                kind=classify_kind_by_path(c.file_path) or c.kind,
+            )
+            for c in chunks
+        ]
 
         embeddings = self._embedder.embed_batch([c.source_text for c in chunks])
         chunks = [replace(c, embedding=e) for c, e in zip(chunks, embeddings)]

@@ -45,6 +45,25 @@ def test_projects_are_isolated(tmp_path):
     assert all(r.chunk.symbol == "solo_p1" for r in store.search("p1", [1.0, 0.0], 10))
 
 
+def test_layer_role_and_confidence_survive_upsert_and_list(tmp_path):
+    store = LanceDbVectorStore(str(tmp_path))
+    store.upsert("p1", [
+        chunk_with_vector(
+            "a", "clasificado", [1.0, 0.0],
+            layer="domain", role="entity", role_confidence=0.42,
+        ),
+        chunk_with_vector("b", "sin_clasificar", [0.0, 1.0]),
+    ])
+
+    listed = {c.id: c for c in store.list("p1")}
+    assert listed["a"].layer == "domain"
+    assert listed["a"].role == "entity"
+    assert listed["a"].role_confidence == 0.42
+    assert listed["b"].layer is None
+    assert listed["b"].role is None
+    assert listed["b"].role_confidence is None
+
+
 def test_search_on_missing_project_returns_empty(tmp_path):
     store = LanceDbVectorStore(str(tmp_path))
     assert store.search("nada", [1.0, 0.0], 5) == []

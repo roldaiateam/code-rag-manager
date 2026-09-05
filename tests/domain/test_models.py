@@ -23,6 +23,9 @@ def test_code_chunk_fields():
     assert chunk.language == "python"
     assert chunk.embedding is None
     assert chunk.start_line == 1 and chunk.end_line == 5
+    assert chunk.layer is None
+    assert chunk.role is None
+    assert chunk.role_confidence is None
 
 
 def test_stable_id_is_deterministic():

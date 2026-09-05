@@ -42,6 +42,9 @@ class LanceDbVectorStore:
                 "start_line": c.start_line,
                 "end_line": c.end_line,
                 "source_text": c.source_text,
+                "layer": c.layer,
+                "role": c.role,
+                "role_confidence": c.role_confidence,
             }
             for c in chunks
         ]
@@ -108,4 +111,7 @@ class LanceDbVectorStore:
             start_line=row["start_line"],
             end_line=row["end_line"],
             source_text=row["source_text"],
+            layer=row.get("layer"),
+            role=row.get("role"),
+            role_confidence=row.get("role_confidence"),
         )

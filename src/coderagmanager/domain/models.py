@@ -30,6 +30,9 @@ class CodeChunk:
     source_text: str             # siempre se persiste completo
     embedding: list[float] | None = None
     metadata: dict = field(default_factory=dict)
+    layer: str | None = None
+    role: str | None = None
+    role_confidence: float | None = None
 
 
 @dataclass(frozen=True)

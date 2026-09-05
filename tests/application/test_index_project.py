@@ -71,6 +71,27 @@ def test_chunks_receive_embeddings(tmp_path):
     assert all(c.embedding is not None for c in vector_store.data["demo"])
 
 
+def test_chunks_are_classified_by_path_convention(tmp_path):
+    (tmp_path / "domain").mkdir()
+    (tmp_path / "domain" / "entity.py").write_text("def f():\n    return 1\n")
+    (tmp_path / "infrastructure").mkdir()
+    (tmp_path / "infrastructure" / "adapter.py").write_text("def g():\n    return 2\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_entity.py").write_text("def test_f():\n    return 3\n")
+    (tmp_path / "loose.py").write_text("def h():\n    return 4\n")
+
+    vector_store = FakeVectorStore()
+    build(str(tmp_path), vector_store).execute()
+
+    by_symbol = {c.symbol: c for c in vector_store.data["demo"]}
+    assert by_symbol["f"].layer == "domain"
+    assert by_symbol["g"].layer == "infrastructure"
+    assert by_symbol["test_f"].layer is None
+    assert by_symbol["test_f"].kind == "test"
+    assert by_symbol["h"].layer is None
+    assert by_symbol["h"].kind != "test"
+
+
 def test_auto_included_generated_code_is_indexed_and_reported(tmp_path):
     import subprocess
 

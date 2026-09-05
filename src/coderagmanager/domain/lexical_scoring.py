@@ -46,9 +46,8 @@ def tokenize_chunk(
     layer: str | None = None,
 ) -> ChunkTokens:
     """`role`/`layer` llegan resueltos por el llamador, no leídos aquí:
-    `CodeChunk` todavía no tiene esos campos (los añade US-06) y este módulo
-    no necesita saberlo — el adaptador decide cómo obtenerlos hoy
-    (`getattr(chunk, "role", None)`, siempre `None` por ahora)."""
+    este módulo no necesita saber de dónde salen — el adaptador decide cómo
+    obtenerlos (hoy, directamente de `chunk.role`/`chunk.layer`)."""
     return ChunkTokens(
         chunk=chunk,
         symbol=tokenize(chunk.symbol),

@@ -21,29 +21,36 @@ project's Java/Spring conventions).
 
 ## Acceptance criteria
 
-- [ ] New fields on `CodeChunk` (domain, optional, default `None`):
+- [x] New fields on `CodeChunk` (domain, optional, default `None`):
       `layer: str | None`, `role: str | None`, `role_confidence: float | None`.
-- [ ] `domain/classification.py::classify_layer_by_path(file_path: str) -> str | None`:
+- [x] `domain/classification.py::classify_layer_by_path(file_path: str) -> str | None`:
       recognizes segments `domain/`, `application/`, `infrastructure/`,
       `ports/`, `adapters/`, `controllers/`, `services/`, `repositories/`
       (case-insensitive, any position in the path) and maps to a
       corresponding `layer` value; returns `None` if no segment matches —
-      never guesses.
-- [ ] Also in this story (cheap, path-based, same spirit): `kind="test"`
+      never guesses. Segments collapse to the project's own 4 canonical
+      layers (`domain`, `application`, `ports`, `infrastructure`); when
+      several recognized segments coexist in one path, the outermost
+      (leftmost) one wins.
+- [x] Also in this story (cheap, path-based, same spirit): `kind="test"`
       detection via path/name convention (`tests/`, `test/`, or filename
       matching `*test*`/`*spec*`) — this was explicitly carved out of the
       semantic classifier (US-08) in the design doc §12 point 5 because it
       doesn't need a fuzzy classifier at all.
-- [ ] `application/index_project.py` calls this after parsing, before
+- [x] `application/index_project.py` calls this after parsing, before
       embedding — same pattern as the existing
       `chunks = [replace(c, embedding=e) for c, e in zip(chunks, embeddings)]`
       line, extended to also set `layer`.
-- [ ] Unit tests: a path with a recognized segment gets the right `layer`; a
+- [x] Unit tests: a path with a recognized segment gets the right `layer`; a
       flat path (e.g. `tests/fixtures/sample_repo/src/pedidos.py`) gets
       `layer=None`.
 - [ ] `--no-role-classification` flag (see US-09) also disables this layer,
-      not just layers 2/3.
-- [ ] **`LanceDbVectorStore.upsert()` and `_to_chunk()`
+      not just layers 2/3. Deferred to US-09 itself, which owns the flag
+      (CLI, `Project`, `composition_root.py`) per its own "Files likely
+      touched". This story only ensures the layer-1 call in
+      `index_project.py` is a single call site, so wrapping it in
+      `if role_classification:` is a one-line change when US-09 lands.
+- [x] **`LanceDbVectorStore.upsert()` and `_to_chunk()`
       (`adapters/storage/lancedb_vector_store.py`) are extended to persist
       and reconstruct `layer`/`role`/`role_confidence`.** Confirmed by
       reading the adapter: today's row dict only carries
@@ -55,11 +62,11 @@ project's Java/Spring conventions).
       `--role`/`--layer` filters can work at all — without this, US-09
       would filter against fields that are always `None` once read back
       from the index, regardless of what `index_project.py` computed.
-- [ ] Unit test proving the round trip: a chunk classified with a non-`None`
+- [x] Unit test proving the round trip: a chunk classified with a non-`None`
       `layer` still has that `layer` after `vector_store.upsert()` +
       `vector_store.list()` (not just asserted on the in-memory object
       before it's ever persisted).
-- [ ] `JsonGraphStore` is **not** touched by this story — `graph_store.nodes()`
+- [x] `JsonGraphStore` is **not** touched by this story — `graph_store.nodes()`
       is only consumed by `get_dependency_chain`'s `describe()`, which is
       out of scope for role/layer display (US-09 only wires the filter into
       `search_code`/`list_chunks`, both backed by `vector_store`).

@@ -50,8 +50,8 @@ class MultiFieldLexicalIndex:
             tokenize_chunk(
                 chunk,
                 called_symbols=calls_by_source.get(chunk.id, []),
-                role=getattr(chunk, "role", None),
-                layer=getattr(chunk, "layer", None),
+                role=chunk.role,
+                layer=chunk.layer,
             )
             for chunk in chunks
         ]
