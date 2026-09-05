@@ -63,6 +63,7 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-29](US-29-css-parser.md)                         | Dedicated CSS parser (selectors/rules as structured chunks)                      | Language coverage            | —                   |             |
 | [US-30](US-30-composite-parser-fallback.md)          | `CompositeLanguageParser` falls back to generic text instead of indexing nothing | Language coverage            | —                   |             |
 | [US-31](US-31-atomic-state-writes.md)                | Atomic writes for `graph.json`/`manifest.json`/`projects.yaml`                   | Index reliability            | —                   |             |
+| [US-32](US-32-semantic-layer-noise-filtering.md)     | Layer 3 quality: exclude non-code chunks and abstain below confidence            | Nivel 1                      | US-08               |             |
 
 Tiers follow the roadmap in `PLAN-MEJORA-CODE-RAG-MANAGER.md §11`: Nivel 0 →
 Nivel 1 → Nivel 2 → indexing automation → Nivel 3. Within a tier, stories
