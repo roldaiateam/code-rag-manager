@@ -6,7 +6,11 @@ from coderagmanager.domain.models import CodeChunk, DependencyEdge, SearchResult
 
 
 class FakeEmbedder:
+    def __init__(self):
+        self.calls: list[list[str]] = []
+
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(list(texts))
         # vector determinista y barato: longitud y nº de palabras del texto
         return [[float(len(t) % 97), float(len(t.split()))] for t in texts]
 

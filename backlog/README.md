@@ -39,7 +39,7 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-05](US-05-multi-field-lexical-scoring.md)        | Multi-field lexical scoring                                                      | Nivel 1                      | US-04               | Implemented |
 | [US-06](US-06-classification-layer-1-path.md)        | Classification layer 1: path vocabulary                                          | Nivel 1                      | —                   | Implemented |
 | [US-07](US-07-classification-layer-2-spring-java.md) | Classification layer 2: `spring-java` pack                                       | Nivel 1                      | —                   | Implemented |
-| [US-08](US-08-classification-layer-3-semantic.md)    | Classification layer 3: semantic prototypes                                      | Nivel 1                      | US-06, US-07        |             |
+| [US-08](US-08-classification-layer-3-semantic.md)    | Classification layer 3: semantic prototypes                                      | Nivel 1                      | US-06, US-07        | Implemented |
 | [US-09](US-09-role-layer-filters.md)                 | `--role`/`--layer` filters (CLI + MCP tools)                                     | Nivel 1                      | US-06, US-07, US-08 |             |
 | [US-10](US-10-role-based-summaries.md)               | Role-based chunk summaries                                                       | Nivel 1 (2nd wave)           | US-06, US-07, US-08 |             |
 | [US-11](US-11-bm25.md)                               | Real BM25 lexical index                                                          | Nivel 2                      | US-04               |             |

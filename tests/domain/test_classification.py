@@ -1,9 +1,11 @@
 import pytest
 
 from coderagmanager.domain.classification import (
+    SEMANTIC_ROLE_PROTOTYPES,
     classify_kind_by_path,
     classify_layer_by_path,
     classify_role_spring_java,
+    nearest_role_prototype,
     spring_java_pack_applies,
 )
 from coderagmanager.domain.models import CodeChunk
@@ -206,3 +208,49 @@ def test_pack_applies_when_a_java_chunk_has_a_recognized_annotation():
 def test_pack_does_not_apply_without_recognized_annotations():
     chunks = [_java_chunk("Foo", "class"), _java_chunk("Bar", "interface")]
     assert spring_java_pack_applies(chunks) is False
+
+
+def test_semantic_role_prototypes_has_the_seven_expected_categories():
+    assert set(SEMANTIC_ROLE_PROTOTYPES) == {
+        "entity",
+        "controller",
+        "adapter",
+        "use_case",
+        "mapper",
+        "config",
+        "utility",
+    }
+
+
+def test_nearest_role_prototype_picks_the_closest_prototype_by_cosine():
+    prototypes = {"a": [1.0, 0.0], "b": [0.0, 1.0], "c": [-1.0, 0.0]}
+    role, margin = nearest_role_prototype([0.9, 0.1], prototypes)
+    assert role == "a"
+    assert margin > 0.5
+
+
+def test_nearest_role_prototype_margin_is_top1_minus_top2_similarity():
+    prototypes = {"p1": [1.0, 0.0], "p2": [0.0, 1.0]}
+    role, margin = nearest_role_prototype([3.0, 4.0], prototypes)
+    assert role == "p2"
+    assert margin == pytest.approx(0.2)
+
+
+def test_nearest_role_prototype_always_assigns_from_the_closed_set():
+    prototypes = {"a": [1.0, 0.0, 0.0], "b": [0.0, 1.0, 0.0], "c": [0.0, 0.0, -1.0]}
+    role, _ = nearest_role_prototype([0.0, 0.0, 1.0], prototypes)
+    assert role in prototypes
+
+
+def test_nearest_role_prototype_handles_zero_vector_without_crashing():
+    prototypes = {"a": [1.0, 0.0], "b": [0.0, 1.0]}
+    role, margin = nearest_role_prototype([0.0, 0.0], prototypes)
+    assert role == "a"
+    assert margin == 0.0
+
+
+def test_nearest_role_prototype_breaks_ties_deterministically():
+    prototypes = {"first": [1.0, 0.0], "second": [2.0, 0.0]}
+    role, margin = nearest_role_prototype([1.0, 0.0], prototypes)
+    assert role == "first"
+    assert margin == 0.0

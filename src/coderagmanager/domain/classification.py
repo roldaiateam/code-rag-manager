@@ -6,6 +6,7 @@ convención reconocida, en vez de adivinar.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 
 from coderagmanager.domain.models import CodeChunk
@@ -112,3 +113,45 @@ def classify_role_spring_java(chunk: CodeChunk) -> str | None:
     if chunk.kind == "class":
         return _classify_class_role_spring_java(chunk, annotations)
     return None
+
+
+SEMANTIC_ROLE_PROTOTYPES: dict[str, str] = {
+    "entity": "a domain entity or data model representing a core business concept, without external I/O",
+    "controller": "a handler that receives an external request (HTTP, CLI, or event) and delegates it to application logic",
+    "adapter": "an adapter that reads or writes to an external system such as a database, message queue, or API",
+    "use_case": "an application service that orchestrates business logic by coordinating several components",
+    "mapper": "a converter that transforms data between two representations, such as a DTO and a domain object",
+    "config": "configuration or setup code that wires dependencies, with no business logic",
+    "utility": "a generic helper function with no specific architectural role",
+}
+
+# Valor de partida para "confianza baja" en la Capa 3; pendiente de calibrar
+# contra los 3 proyectos reales del banco de benchmarks una vez haya código
+# ejecutable — ver PLAN-MEJORA-CODE-RAG-MANAGER.md §12 punto 5.
+SEMANTIC_LOW_CONFIDENCE_MARGIN = 0.05
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(y * y for y in b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def nearest_role_prototype(
+    chunk_embedding: list[float],
+    prototype_embeddings: dict[str, list[float]],
+) -> tuple[str, float]:
+    ranked = sorted(
+        (
+            (role, _cosine_similarity(chunk_embedding, vector))
+            for role, vector in prototype_embeddings.items()
+        ),
+        key=lambda pair: pair[1],
+        reverse=True,
+    )
+    best_role, best_similarity = ranked[0]
+    second_similarity = ranked[1][1] if len(ranked) > 1 else best_similarity
+    return best_role, best_similarity - second_similarity

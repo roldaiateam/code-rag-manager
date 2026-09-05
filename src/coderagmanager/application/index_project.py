@@ -12,12 +12,14 @@ from dataclasses import replace
 from coderagmanager.application.file_discovery import discover_files
 from coderagmanager.application.manifest import now_iso, write_manifest
 from coderagmanager.domain.classification import (
+    SEMANTIC_ROLE_PROTOTYPES,
     classify_kind_by_path,
     classify_layer_by_path,
     classify_role_spring_java,
+    nearest_role_prototype,
     spring_java_pack_applies,
 )
-from coderagmanager.domain.models import IndexManifest, IndexStats
+from coderagmanager.domain.models import CodeChunk, IndexManifest, IndexStats
 from coderagmanager.domain.resolution import resolve_edges
 from coderagmanager.ports.embedding_provider import EmbeddingProvider
 from coderagmanager.ports.git_provider import GitProvider
@@ -47,6 +49,16 @@ class IndexProject:
         self._lexical_index, self._git = lexical_index, git
         self._extra_index_paths = extra_index_paths or []
         self._auto_include = auto_include
+        self._prototype_embeddings: dict[str, list[float]] | None = None
+
+    def _semantic_prototypes(self) -> dict[str, list[float]]:
+        if self._prototype_embeddings is None:
+            names = list(SEMANTIC_ROLE_PROTOTYPES)
+            vectors = self._embedder.embed_batch(
+                [SEMANTIC_ROLE_PROTOTYPES[name] for name in names]
+            )
+            self._prototype_embeddings = dict(zip(names, vectors))
+        return self._prototype_embeddings
 
     def execute(self) -> IndexStats:
         self._vector_store.drop(self._project_id)
@@ -85,6 +97,13 @@ class IndexProject:
         embeddings = self._embedder.embed_batch([c.source_text for c in chunks])
         chunks = [replace(c, embedding=e) for c, e in zip(chunks, embeddings)]
 
+        if any(c.role is None for c in chunks):
+            prototypes = self._semantic_prototypes()
+            chunks = [
+                c if c.role is not None else _with_semantic_role(c, prototypes)
+                for c in chunks
+            ]
+
         self._vector_store.upsert(self._project_id, chunks)
         self._graph_store.upsert_nodes(self._project_id, chunks)
         self._graph_store.upsert_edges(self._project_id, edges)
@@ -105,3 +124,10 @@ class IndexProject:
         return IndexStats(
             total_chunks=len(chunks), total_edges=len(edges), included=included
         )
+
+
+def _with_semantic_role(
+    chunk: CodeChunk, prototype_embeddings: dict[str, list[float]]
+) -> CodeChunk:
+    role, margin = nearest_role_prototype(chunk.embedding, prototype_embeddings)
+    return replace(chunk, role=role, role_confidence=margin)

@@ -4,6 +4,7 @@ from pathlib import Path
 from coderagmanager.adapters.parsers.tree_sitter_java import TreeSitterJavaParser
 from coderagmanager.adapters.parsers.tree_sitter_python import TreeSitterPythonParser
 from coderagmanager.application.index_project import IndexProject
+from coderagmanager.domain.classification import SEMANTIC_ROLE_PROTOTYPES
 from coderagmanager.domain.models import EdgeType
 
 from tests.application.fakes import (
@@ -17,12 +18,12 @@ from tests.application.fakes import (
 FIXTURE_REPO = Path(__file__).parent.parent / "fixtures" / "sample_repo"
 
 
-def build(root: str, vector_store=None, graph_store=None, parser=None):
+def build(root: str, vector_store=None, graph_store=None, parser=None, embedder=None):
     return IndexProject(
         project_id="demo",
         root_path=root,
         parser=parser or TreeSitterPythonParser(),
-        embedder=FakeEmbedder(),
+        embedder=embedder or FakeEmbedder(),
         vector_store=vector_store or FakeVectorStore(),
         graph_store=graph_store or FakeGraphStore(),
         lexical_index=FakeLexicalIndex(),
@@ -93,6 +94,17 @@ def test_chunks_are_classified_by_path_convention(tmp_path):
     assert by_symbol["h"].kind != "test"
 
 
+def test_chunks_without_structural_role_get_a_semantic_role(tmp_path):
+    (tmp_path / "loose.py").write_text("def h():\n    return 4\n")
+
+    vector_store = FakeVectorStore()
+    build(str(tmp_path), vector_store).execute()
+
+    chunk = vector_store.data["demo"][0]
+    assert chunk.role in SEMANTIC_ROLE_PROTOTYPES
+    assert chunk.role_confidence is not None
+
+
 def test_auto_included_generated_code_is_indexed_and_reported(tmp_path):
     import subprocess
 
@@ -153,7 +165,21 @@ def test_spring_java_chunks_are_classified_by_role(tmp_path):
     assert by_symbol["FooMapper"].role == "mapper"
 
 
-def test_java_project_without_spring_annotations_has_no_roles(tmp_path):
+def test_semantic_layer_does_not_override_structural_role_from_layer_2(tmp_path):
+    (tmp_path / "infrastructure").mkdir()
+    (tmp_path / "infrastructure" / "FooController.java").write_text(
+        "package foo.infrastructure;\n@RestController\npublic class FooController {}\n"
+    )
+
+    vector_store = FakeVectorStore()
+    build(str(tmp_path), vector_store, parser=TreeSitterJavaParser()).execute()
+
+    by_symbol = {c.symbol: c for c in vector_store.data["demo"]}
+    assert by_symbol["FooController"].role == "controller"
+    assert by_symbol["FooController"].role_confidence is None
+
+
+def test_java_project_without_spring_annotations_falls_back_to_semantic_roles(tmp_path):
     (tmp_path / "domain" / "ports" / "in").mkdir(parents=True)
     (tmp_path / "domain" / "ports" / "in" / "FooUseCase.java").write_text(
         "package foo.domain.ports.in;\npublic interface FooUseCase {}\n"
@@ -167,4 +193,13 @@ def test_java_project_without_spring_annotations_has_no_roles(tmp_path):
     vector_store = FakeVectorStore()
     build(str(tmp_path), vector_store, parser=TreeSitterJavaParser()).execute()
 
-    assert all(c.role is None for c in vector_store.data["demo"])
+    chunks = vector_store.data["demo"]
+    assert all(c.role in SEMANTIC_ROLE_PROTOTYPES for c in chunks)
+    assert all(c.role_confidence is not None for c in chunks)
+
+
+def test_index_with_no_files_does_not_compute_prototype_embeddings(tmp_path):
+    embedder = FakeEmbedder()
+    build(str(tmp_path), embedder=embedder).execute()
+
+    assert embedder.calls == [[]]
