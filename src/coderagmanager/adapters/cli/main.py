@@ -259,7 +259,10 @@ def mcp_install(
 
     Con --client claude añade además un bloque (idempotente) al CLAUDE.md del
     repo indicando al agente que prefiera las tools del índice para explorar código."""
-    from coderagmanager.adapters.mcp.client_configs.writers import build_writer
+    from coderagmanager.adapters.mcp.client_configs.writers import (
+        build_writer,
+        resolve_crm_executable,
+    )
     from coderagmanager.composition_root import build_registry
 
     try:
@@ -269,6 +272,17 @@ def mcp_install(
         _fail(str(e))
     path = writer.install(project)
     typer.echo(f"Configuración MCP '{'crm-' + project}' escrita en {path}")
+    if not os.path.isabs(resolve_crm_executable()):
+        typer.secho(
+            "Aviso: no se pudo resolver una ruta absoluta para 'crm' (ni en el "
+            "directorio de scripts del intérprete ni en el PATH); se ha escrito "
+            "el comando 'crm' a secas. Si el cliente MCP no hereda el PATH de "
+            "este entorno (p.ej. GitHub Copilot CLI), el servidor no arrancará: "
+            "reemplaza manualmente 'command' en la config por la salida de "
+            "'which crm'.",
+            fg=typer.colors.YELLOW,
+            err=True,
+        )
     if client == "claude" and not skip_claude_md:
         from coderagmanager.adapters.mcp.client_configs.claude_md import (
             upsert_claude_md_block,

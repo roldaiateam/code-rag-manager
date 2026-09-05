@@ -8,6 +8,7 @@ a stderr.
 from __future__ import annotations
 
 import argparse
+import sys
 
 try:  # SDK MCP >= 2.0
     from mcp.server.mcpserver import MCPServer
@@ -120,8 +121,18 @@ def main() -> None:
     serve(args.project)
 
 
-def serve(project_id: str, registry_path: str | None = None) -> None:
-    build_server(project_id, registry_path=registry_path).run(transport="stdio")
+def serve(
+    project_id: str,
+    registry_path: str | None = None,
+    *,
+    _build_server=build_server,
+) -> None:
+    server = _build_server(project_id, registry_path=registry_path)
+    print(
+        f"crm-{project_id}: servidor MCP listo, esperando handshake de un cliente por stdio.",
+        file=sys.stderr,
+    )
+    server.run(transport="stdio")
 
 
 if __name__ == "__main__":

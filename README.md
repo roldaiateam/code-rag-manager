@@ -43,6 +43,13 @@ crm mcp install --client codex --project my-backend    # .codex/config.toml
 crm mcp install --client copilot --project my-backend  # ~/.copilot/mcp-config.json
 ```
 
+`crm mcp serve` is meant to be launched **by** an MCP client (via
+`crm mcp install`), not run by hand in a terminal to try it out. If you do
+run it manually, you'll see a one-line confirmation on stderr and then
+nothing else — the process is blocked reading stdin, waiting for a
+client's MCP `initialize` handshake. That's expected behavior, not a
+hang; press Ctrl-C to exit.
+
 ## MCP tools (6, no `project_id`: the server is bound to a single project)
 
 `search_code` · `get_dependency_chain` · `get_source` · `list_chunks` ·

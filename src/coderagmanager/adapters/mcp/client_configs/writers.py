@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import sysconfig
 import tomllib
 
 
@@ -16,8 +18,24 @@ def server_entry_name(project_id: str) -> str:
     return f"crm-{project_id}"
 
 
+def resolve_crm_executable(scripts_dir: str | None = None) -> str:
+    """Resuelve una ruta absoluta al ejecutable 'crm' para no depender de
+    que el proceso que lanza el servidor MCP herede el PATH del entorno de
+    instalación (rompe sobre todo a GitHub Copilot CLI, que lanza su propio
+    proceso hijo). Orden: directorio de scripts del intérprete actual →
+    PATH → string "crm" a secas como último recurso.
+    """
+    scripts_dir = scripts_dir if scripts_dir is not None else sysconfig.get_path("scripts")
+    if scripts_dir:
+        candidate = os.path.join(scripts_dir, "crm")
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    found = shutil.which("crm")
+    return found if found else "crm"
+
+
 def server_command(project_id: str) -> tuple[str, list[str]]:
-    return "crm", ["mcp", "serve", "--project", project_id]
+    return resolve_crm_executable(), ["mcp", "serve", "--project", project_id]
 
 
 class ClaudeConfigWriter:
