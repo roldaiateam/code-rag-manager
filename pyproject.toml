@@ -13,6 +13,7 @@ dependencies = [
     "lancedb",
     "sentence-transformers",
     "pyyaml",
+    "snowballstemmer>=2.2",
 ]
 
 [project.optional-dependencies]
