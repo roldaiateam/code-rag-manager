@@ -10,6 +10,8 @@ from coderagmanager.domain.models import SearchResult
 
 SEMANTIC_WEIGHT = 0.6
 LEXICAL_WEIGHT = 0.4
+SEMANTIC_CONFIDENCE_THRESHOLD = 0.35
+LEXICAL_CONFIDENCE_THRESHOLD = 0.0
 
 
 def _normalize(results: list[SearchResult]) -> dict[str, float]:
@@ -44,3 +46,23 @@ def merge_and_rerank(
 
     merged.sort(key=lambda r: r.score, reverse=True)
     return merged[:top_k]
+
+
+def is_low_confidence(
+    semantic: list[SearchResult], lexical: list[SearchResult]
+) -> bool:
+    """True si ningún canal encontró señal real para la consulta (US-02).
+
+    Se evalúa sobre los scores CRUDOS, antes de merge_and_rerank: su
+    normalización min-max estira el mejor resultado de cualquier lote no
+    vacío hacia 1.0, así que aplicar el umbral después de normalizar nunca
+    dispararía. best_lexical == 0.0 equivale en la práctica a "sin hits
+    léxicos en absoluto", porque SubstringLexicalIndex solo devuelve
+    resultados con score > 0.
+    """
+    best_semantic = max((r.score for r in semantic), default=0.0)
+    best_lexical = max((r.score for r in lexical), default=0.0)
+    return (
+        best_semantic < SEMANTIC_CONFIDENCE_THRESHOLD
+        and best_lexical == LEXICAL_CONFIDENCE_THRESHOLD
+    )

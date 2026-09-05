@@ -14,10 +14,13 @@ def test_search_combines_semantic_and_lexical():
     lexical.index("p1", [lexical_chunk])
 
     use_case = SearchCode("p1", FakeEmbedder(), vector_store, lexical)
-    results = use_case.execute(SearchQuery(text="emailvalidator", top_k=5))
+    outcome = use_case.execute(SearchQuery(text="emailvalidator", top_k=5))
 
-    ids = {r.chunk.id for r in results}
+    ids = {r.chunk.id for r in outcome.results}
     assert {"s1", "l1"} <= ids
+    # FakeVectorStore siempre da score >= 0.9 al primer resultado: nunca
+    # debería marcarse como baja confianza cuando hay señal real.
+    assert outcome.low_confidence is False
 
 
 def test_search_filters_by_language_and_kind():
@@ -28,8 +31,19 @@ def test_search_filters_by_language_and_kind():
     ])
     use_case = SearchCode("p1", FakeEmbedder(), vector_store, FakeLexicalIndex())
 
-    results = use_case.execute(SearchQuery(text="algo", language="java"))
-    assert [r.chunk.id for r in results] == ["b"]
+    outcome = use_case.execute(SearchQuery(text="algo", language="java"))
+    assert [r.chunk.id for r in outcome.results] == ["b"]
 
-    results = use_case.execute(SearchQuery(text="algo", kind="function"))
-    assert [r.chunk.id for r in results] == ["a"]
+    outcome = use_case.execute(SearchQuery(text="algo", kind="function"))
+    assert [r.chunk.id for r in outcome.results] == ["a"]
+
+
+def test_search_flags_low_confidence_when_nothing_indexed():
+    # Sin chunks en absoluto: mejor semántico crudo = 0.0 (< 0.35) y mejor
+    # léxico crudo = 0.0 (sin hits) -> baja confianza, resultados vacíos.
+    use_case = SearchCode("p1", FakeEmbedder(), FakeVectorStore(), FakeLexicalIndex())
+
+    outcome = use_case.execute(SearchQuery(text="algo que no existe"))
+
+    assert outcome.results == []
+    assert outcome.low_confidence is True

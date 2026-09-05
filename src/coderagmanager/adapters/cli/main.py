@@ -208,10 +208,10 @@ def search(
 ) -> None:
     """Búsqueda híbrida de depuración, sin pasar por MCP."""
     uc = _use_cases(project)
-    results = uc["search_code"].execute(
+    outcome = uc["search_code"].execute(
         SearchQuery(text=query, top_k=top_k, language=language, kind=kind)
     )
-    typer.echo(format_search_results(results))
+    typer.echo(format_search_results(outcome.results, outcome.low_confidence))
 
 
 @app.command()

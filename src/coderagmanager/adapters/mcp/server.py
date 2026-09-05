@@ -43,10 +43,10 @@ def build_server(project_id: str, registry_path: str | None = None) -> MCPServer
         nombres de símbolo. Filtros opcionales: language ("python",
         "javascript", "java", "text") y kind ("function", "class", "method"...).
         """
-        results = uc["search_code"].execute(
+        outcome = uc["search_code"].execute(
             SearchQuery(text=query, top_k=top_k, language=language, kind=kind)
         )
-        return format_search_results(results)
+        return format_search_results(outcome.results, outcome.low_confidence)
 
     @mcp.tool()
     def get_dependency_chain(

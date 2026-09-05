@@ -1,5 +1,5 @@
 from coderagmanager.domain.models import SearchResult
-from coderagmanager.domain.ranking import merge_and_rerank
+from coderagmanager.domain.ranking import is_low_confidence, merge_and_rerank
 
 from tests.domain.test_models import make_chunk
 
@@ -32,3 +32,20 @@ def test_lexical_only_results_survive():
     merged = merge_and_rerank([], lexical, top_k=5)
     assert merged[0].chunk.id == "x"
     assert merged[0].match_reason == "lexical"
+
+
+def test_is_low_confidence_true_when_semantic_weak_and_no_lexical_hits():
+    semantic = [result("a", 0.1, "semantic")]
+    assert is_low_confidence(semantic, []) is True
+
+
+def test_is_low_confidence_false_when_lexical_hit_present():
+    # Un hit léxico fuerte basta, aunque el semántico sea débil (híbrido).
+    semantic = [result("a", 0.1, "semantic")]
+    lexical = [result("a", 2.0, "lexical")]
+    assert is_low_confidence(semantic, lexical) is False
+
+
+def test_is_low_confidence_false_when_semantic_strong():
+    semantic = [result("a", 0.9, "semantic")]
+    assert is_low_confidence(semantic, []) is False

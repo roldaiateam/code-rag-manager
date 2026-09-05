@@ -4,11 +4,20 @@ from __future__ import annotations
 
 from coderagmanager.domain.models import CodeChunk, SearchResult
 
+LOW_CONFIDENCE_NOTICE = (
+    "⚠ Ningún resultado supera el umbral de confianza para esta consulta; "
+    "se muestran los candidatos más cercanos, trátalos con cautela:"
+)
 
-def format_search_results(results: list[SearchResult]) -> str:
+
+def format_search_results(
+    results: list[SearchResult], low_confidence: bool = False
+) -> str:
     if not results:
         return "Sin resultados."
     lines = []
+    if low_confidence:
+        lines.append(LOW_CONFIDENCE_NOTICE)
     for i, r in enumerate(results, 1):
         c = r.chunk
         lines.append(

@@ -67,6 +67,13 @@ class SearchResult:
 
 
 @dataclass(frozen=True)
+class SearchOutcome:
+    """Resultado de SearchCode.execute(): resultados + señal de confianza (US-02)."""
+    results: list[SearchResult]
+    low_confidence: bool = False
+
+
+@dataclass(frozen=True)
 class IndexStats:
     total_chunks: int
     total_edges: int
