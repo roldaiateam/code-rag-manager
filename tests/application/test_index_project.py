@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from coderagmanager.adapters.parsers.tree_sitter_java import TreeSitterJavaParser
 from coderagmanager.adapters.parsers.tree_sitter_python import TreeSitterPythonParser
 from coderagmanager.application.index_project import IndexProject
 from coderagmanager.domain.models import EdgeType
@@ -16,11 +17,11 @@ from tests.application.fakes import (
 FIXTURE_REPO = Path(__file__).parent.parent / "fixtures" / "sample_repo"
 
 
-def build(root: str, vector_store=None, graph_store=None):
+def build(root: str, vector_store=None, graph_store=None, parser=None):
     return IndexProject(
         project_id="demo",
         root_path=root,
-        parser=TreeSitterPythonParser(),
+        parser=parser or TreeSitterPythonParser(),
         embedder=FakeEmbedder(),
         vector_store=vector_store or FakeVectorStore(),
         graph_store=graph_store or FakeGraphStore(),
@@ -108,3 +109,62 @@ def test_auto_included_generated_code_is_indexed_and_reported(tmp_path):
     symbols = {c.symbol for c in vector_store.data["demo"]}
     assert {"visible", "generado"} <= symbols
     assert stats.included == {"auto": 1}
+
+
+def test_spring_java_chunks_are_classified_by_role(tmp_path):
+    (tmp_path / "domain" / "ports" / "in").mkdir(parents=True)
+    (tmp_path / "domain" / "ports" / "in" / "FooUseCase.java").write_text(
+        "package foo.domain.ports.in;\npublic interface FooUseCase {}\n"
+    )
+    (tmp_path / "domain" / "ports" / "out").mkdir(parents=True)
+    (tmp_path / "domain" / "ports" / "out" / "FooPort.java").write_text(
+        "package foo.domain.ports.out;\npublic interface FooPort {}\n"
+    )
+    (tmp_path / "application").mkdir()
+    (tmp_path / "application" / "FooUseCaseImpl.java").write_text(
+        "package foo.application;\n@Service\npublic class FooUseCaseImpl {}\n"
+    )
+    (tmp_path / "infrastructure").mkdir()
+    (tmp_path / "infrastructure" / "FooController.java").write_text(
+        "package foo.infrastructure;\n@RestController\npublic class FooController {}\n"
+    )
+    (tmp_path / "infrastructure" / "FooDb.java").write_text(
+        "package foo.infrastructure;\n@Entity\npublic class FooDb {}\n"
+    )
+    (tmp_path / "infrastructure" / "FooRepository.java").write_text(
+        "package foo.infrastructure;\n"
+        "public interface FooRepository extends JpaRepository<FooDb, Long> {}\n"
+    )
+    (tmp_path / "infrastructure" / "FooMapper.java").write_text(
+        'package foo.infrastructure;\n@Mapper(componentModel = "spring")\n'
+        "public interface FooMapper {}\n"
+    )
+
+    vector_store = FakeVectorStore()
+    build(str(tmp_path), vector_store, parser=TreeSitterJavaParser()).execute()
+
+    by_symbol = {c.symbol: c for c in vector_store.data["demo"]}
+    assert by_symbol["FooUseCase"].role == "port-in"
+    assert by_symbol["FooPort"].role == "port-out"
+    assert by_symbol["FooUseCaseImpl"].role == "use-case"
+    assert by_symbol["FooController"].role == "controller"
+    assert by_symbol["FooDb"].role == "jpa-entity"
+    assert by_symbol["FooRepository"].role == "repository"
+    assert by_symbol["FooMapper"].role == "mapper"
+
+
+def test_java_project_without_spring_annotations_has_no_roles(tmp_path):
+    (tmp_path / "domain" / "ports" / "in").mkdir(parents=True)
+    (tmp_path / "domain" / "ports" / "in" / "FooUseCase.java").write_text(
+        "package foo.domain.ports.in;\npublic interface FooUseCase {}\n"
+    )
+    (tmp_path / "infrastructure").mkdir()
+    (tmp_path / "infrastructure" / "FooRepository.java").write_text(
+        "package foo.infrastructure;\n"
+        "public interface FooRepository extends BaseRepository {}\n"
+    )
+
+    vector_store = FakeVectorStore()
+    build(str(tmp_path), vector_store, parser=TreeSitterJavaParser()).execute()
+
+    assert all(c.role is None for c in vector_store.data["demo"])

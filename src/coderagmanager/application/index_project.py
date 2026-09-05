@@ -14,6 +14,8 @@ from coderagmanager.application.manifest import now_iso, write_manifest
 from coderagmanager.domain.classification import (
     classify_kind_by_path,
     classify_layer_by_path,
+    classify_role_spring_java,
+    spring_java_pack_applies,
 )
 from coderagmanager.domain.models import IndexManifest, IndexStats
 from coderagmanager.domain.resolution import resolve_edges
@@ -77,6 +79,8 @@ class IndexProject:
             )
             for c in chunks
         ]
+        if spring_java_pack_applies(chunks):
+            chunks = [replace(c, role=classify_role_spring_java(c)) for c in chunks]
 
         embeddings = self._embedder.embed_batch([c.source_text for c in chunks])
         chunks = [replace(c, embedding=e) for c, e in zip(chunks, embeddings)]

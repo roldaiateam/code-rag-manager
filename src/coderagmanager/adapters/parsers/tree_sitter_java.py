@@ -14,6 +14,8 @@ from coderagmanager.domain.resolution import unresolved_ref
 
 TYPE_NODE_TYPES = {"class_declaration", "interface_declaration", "record_declaration"}
 CHUNK_NODE_TYPES = TYPE_NODE_TYPES | {"method_declaration"}
+ANNOTATION_NODE_TYPES = {"marker_annotation", "annotation"}
+SUPERTYPE_CLAUSE_TYPES = {"superclass", "super_interfaces", "extends_interfaces"}
 
 KIND_BY_NODE_TYPE = {
     "class_declaration": "class",
@@ -21,6 +23,40 @@ KIND_BY_NODE_TYPE = {
     "record_declaration": "record",
     "method_declaration": "method",
 }
+
+
+def _annotations_of(source_bytes: bytes, type_node) -> list[str]:
+    modifiers = next(
+        (child for child in type_node.children if child.type == "modifiers"), None
+    )
+    if modifiers is None:
+        return []
+    names = []
+    for node in modifiers.children:
+        if node.type not in ANNOTATION_NODE_TYPES:
+            continue
+        name_node = node.child_by_field_name("name")
+        names.append(node_text(source_bytes, name_node).rsplit(".", 1)[-1])
+    return names
+
+
+def _shallow_type_names(source_bytes: bytes, node) -> list[str]:
+    if node.type in ("type_identifier", "scoped_type_identifier"):
+        return [node_text(source_bytes, node).rsplit(".", 1)[-1]]
+    if node.type == "generic_type":
+        return _shallow_type_names(source_bytes, node.children[0])
+    names = []
+    for child in node.children:
+        names.extend(_shallow_type_names(source_bytes, child))
+    return names
+
+
+def _supertype_names(source_bytes: bytes, type_node) -> list[str]:
+    names = []
+    for child in type_node.children:
+        if child.type in SUPERTYPE_CLAUSE_TYPES:
+            names.extend(_shallow_type_names(source_bytes, child))
+    return names
 
 
 class TreeSitterJavaParser:
@@ -42,6 +78,14 @@ class TreeSitterJavaParser:
                 continue
             name_node = node.child_by_field_name("name")
             symbol = node_text(source_bytes, name_node) if name_node else "<anonimo>"
+            metadata = (
+                {
+                    "annotations": _annotations_of(source_bytes, node),
+                    "supertypes": _supertype_names(source_bytes, node),
+                }
+                if node.type in TYPE_NODE_TYPES
+                else {}
+            )
             chunk = CodeChunk(
                 id=stable_id(file_path, symbol, node.start_point[0]),
                 project_id=project_id,
@@ -52,7 +96,7 @@ class TreeSitterJavaParser:
                 start_line=node.start_point[0] + 1,
                 end_line=node.end_point[0] + 1,
                 source_text=node_text(source_bytes, node),
-                metadata={},
+                metadata=metadata,
             )
             chunks.append(chunk)
             chunk_id_by_node[node.id] = chunk.id
