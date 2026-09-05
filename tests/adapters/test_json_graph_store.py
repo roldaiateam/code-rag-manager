@@ -41,6 +41,14 @@ def test_drop_empties_graph(tmp_path):
     assert store.dependency_chain("p1", "aplicar_descuento", 3, "both") == []
 
 
+def test_edges_returns_flat_list(tmp_path):
+    store = build_store(tmp_path)
+    edges = store.edges("p1")
+    assert {(e.source_chunk_id, e.target_chunk_id) for e in edges} == {
+        ("a", "b"), ("b", "c"),
+    }
+
+
 def test_persists_across_instances(tmp_path):
     build_store(tmp_path)
     reopened = JsonGraphStore(str(tmp_path / ".crm"))

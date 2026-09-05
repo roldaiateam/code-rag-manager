@@ -60,16 +60,19 @@ class JsonGraphStore:
     def nodes(self, project_id: str) -> dict[str, dict]:
         return self._load()["nodes"]
 
+    def edges(self, project_id: str) -> list[DependencyEdge]:
+        return [
+            DependencyEdge(
+                e["source_chunk_id"], e["target_chunk_id"], EdgeType(e["edge_type"])
+            )
+            for e in self._load()["edges"]
+        ]
+
     def dependency_chain(
         self, project_id: str, symbol: str, max_depth: int, direction: str
     ) -> list[DependencyEdge]:
         data = self._load()
-        edges = [
-            DependencyEdge(
-                e["source_chunk_id"], e["target_chunk_id"], EdgeType(e["edge_type"])
-            )
-            for e in data["edges"]
-        ]
+        edges = self.edges(project_id)
         out_edges: dict[str, list[DependencyEdge]] = {}
         in_edges: dict[str, list[DependencyEdge]] = {}
         for edge in edges:

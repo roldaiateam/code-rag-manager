@@ -25,7 +25,7 @@ from coderagmanager.adapters.registry.yaml_project_registry import (
 from coderagmanager.adapters.storage.json_graph_store import JsonGraphStore
 from coderagmanager.adapters.storage.lancedb_vector_store import LanceDbVectorStore
 from coderagmanager.adapters.storage.substring_lexical_index import (
-    SubstringLexicalIndex,
+    MultiFieldLexicalIndex,
 )
 from coderagmanager.application.get_dependency_chain import GetDependencyChain
 from coderagmanager.application.get_index_stats import GetIndexStats
@@ -71,7 +71,9 @@ def build_use_cases(project_id: str, registry_path: str | None = None) -> dict:
 
     vector_store = LanceDbVectorStore(index_dir)
     graph_store = JsonGraphStore(index_dir)
-    lexical_index = SubstringLexicalIndex(chunk_provider=vector_store.list)
+    lexical_index = MultiFieldLexicalIndex(
+        chunk_provider=vector_store.list, graph_store=graph_store
+    )
     embedder = LocalSentenceTransformerProvider()
     git = GitCliProvider()
 

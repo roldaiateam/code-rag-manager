@@ -66,6 +66,9 @@ class FakeGraphStore:
     def nodes(self, project_id: str) -> dict[str, dict]:
         return self.nodes_by_project.get(project_id, {})
 
+    def edges(self, project_id: str) -> list[DependencyEdge]:
+        return list(self.edges_by_project.get(project_id, []))
+
 
 class FakeLexicalIndex:
     def __init__(self):

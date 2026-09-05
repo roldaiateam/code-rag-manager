@@ -2,43 +2,69 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from coderagmanager.domain.models import CodeChunk, SearchResult
+from coderagmanager.domain.lexical_scoring import ChunkTokens, rank, tokenize_chunk
+from coderagmanager.domain.models import CodeChunk, EdgeType, SearchResult
+from coderagmanager.domain.tokenizer import expand_query
+from coderagmanager.ports.graph_store import GraphStore
 
 
-class SubstringLexicalIndex:
-    """Retrieval léxico simple: puntúa por coincidencias de substring de los
-    términos de la consulta en `symbol` y `file_path` (sin BM25).
+class MultiFieldLexicalIndex:
+    """Retrieval léxico multi-campo (US-05): delega el scoring en
+    `domain/lexical_scoring.py` (symbol, file_path, source_text, calls,
+    role, layer), comparando conjuntos de tokens en vez de substrings.
 
-    No persiste nada propio: lee los chunks del vector store (única fuente de
-    verdad del índice), por lo que index() no necesita hacer trabajo.
+    No persiste nada propio: los chunks siguen viviendo en el vector store
+    (única fuente de verdad del índice). Lo que sí cachea es la
+    tokenización — se recalcula solo cuando `index()` reconstruye el
+    proyecto (tras un reindex) o, si el proceso arranca sin pasar por ahí,
+    la primera vez que `search()` se llama para ese proyecto.
     """
 
-    def __init__(self, chunk_provider: Callable[[str], list[CodeChunk]]):
+    def __init__(
+        self,
+        chunk_provider: Callable[[str], list[CodeChunk]],
+        graph_store: GraphStore,
+    ):
         self._chunk_provider = chunk_provider
+        self._graph_store = graph_store
+        self._cache: dict[str, list[ChunkTokens]] = {}
 
     def index(self, project_id: str, chunks: list[CodeChunk]) -> None:
-        pass  # los chunks ya quedan persistidos por el vector store
+        self._cache[project_id] = self._tokenize_all(project_id, chunks)
 
     def search(self, project_id: str, text: str, top_k: int) -> list[SearchResult]:
-        terms = [t for t in text.lower().split() if len(t) >= 2]
-        if not terms:
+        if project_id not in self._cache:
+            self._cache[project_id] = self._tokenize_all(
+                project_id, self._chunk_provider(project_id)
+            )
+        query_tokens = expand_query(text)
+        if not query_tokens:
             return []
-        scored: list[SearchResult] = []
-        for chunk in self._chunk_provider(project_id):
-            symbol = chunk.symbol.lower()
-            path = chunk.file_path.lower()
-            source = chunk.source_text.lower()
-            score = 0.0
-            for term in terms:
-                if term in symbol:
-                    score += 2.0  # coincidencia en el símbolo pesa más que en la ruta
-                if term in path:
-                    score += 1.0
-                if term in source:
-                    score += 0.5  # señal más débil: el término solo vive en el cuerpo
-            if score > 0:
-                scored.append(
-                    SearchResult(chunk=chunk, score=score, match_reason="lexical")
+        return rank(query_tokens, self._cache[project_id], top_k)
+
+    def _tokenize_all(
+        self, project_id: str, chunks: list[CodeChunk]
+    ) -> list[ChunkTokens]:
+        calls_by_source = self._calls_by_source(project_id)
+        return [
+            tokenize_chunk(
+                chunk,
+                called_symbols=calls_by_source.get(chunk.id, []),
+                role=getattr(chunk, "role", None),
+                layer=getattr(chunk, "layer", None),
+            )
+            for chunk in chunks
+        ]
+
+    def _calls_by_source(self, project_id: str) -> dict[str, list[str]]:
+        nodes = self._graph_store.nodes(project_id)
+        calls_by_source: dict[str, list[str]] = {}
+        for edge in self._graph_store.edges(project_id):
+            if edge.edge_type != EdgeType.CALLS:
+                continue
+            target = nodes.get(edge.target_chunk_id)
+            if target:
+                calls_by_source.setdefault(edge.source_chunk_id, []).append(
+                    target["symbol"]
                 )
-        scored.sort(key=lambda r: r.score, reverse=True)
-        return scored[:top_k]
+        return calls_by_source
