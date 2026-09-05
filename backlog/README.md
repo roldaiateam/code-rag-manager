@@ -64,6 +64,9 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-30](US-30-composite-parser-fallback.md)          | `CompositeLanguageParser` falls back to generic text instead of indexing nothing | Language coverage            | —                   |             |
 | [US-31](US-31-atomic-state-writes.md)                | Atomic writes for `graph.json`/`manifest.json`/`projects.yaml`                   | Index reliability            | —                   |             |
 | [US-32](US-32-semantic-layer-noise-filtering.md)     | Layer 3 quality: exclude non-code chunks and abstain below confidence            | Nivel 1                      | US-08               |             |
+| [US-33](US-33-declarative-pack-engine.md)            | Layer 2: declarative convention-pack engine (migrate `spring-java` onto it)      | Nivel 1                      | US-07               |             |
+| [US-34](US-34-react-typescript-pack.md)              | Layer 2: `react-typescript` convention pack                                      | Nivel 1                      | US-33               |             |
+| [US-35](US-35-custom-classification-packs.md)        | Project-local custom classification packs                                       | Nivel 1 (pack extensibility) | US-33, US-20        |             |
 
 Tiers follow the roadmap in `PLAN-MEJORA-CODE-RAG-MANAGER.md §11`: Nivel 0 →
 Nivel 1 → Nivel 2 → indexing automation → Nivel 3. Within a tier, stories
