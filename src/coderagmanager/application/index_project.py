@@ -42,6 +42,7 @@ class IndexProject:
         git: GitProvider,
         extra_index_paths: list[str] | None = None,
         auto_include: bool = True,
+        role_classification: bool = True,
     ):
         self._project_id, self._root_path = project_id, root_path
         self._parser, self._embedder = parser, embedder
@@ -49,6 +50,7 @@ class IndexProject:
         self._lexical_index, self._git = lexical_index, git
         self._extra_index_paths = extra_index_paths or []
         self._auto_include = auto_include
+        self._role_classification = role_classification
         self._prototype_embeddings: dict[str, list[float]] | None = None
 
     def _semantic_prototypes(self) -> dict[str, list[float]]:
@@ -83,21 +85,22 @@ class IndexProject:
 
         edges = resolve_edges(chunks, edges)
 
-        chunks = [
-            replace(
-                c,
-                layer=classify_layer_by_path(c.file_path),
-                kind=classify_kind_by_path(c.file_path) or c.kind,
-            )
-            for c in chunks
-        ]
-        if spring_java_pack_applies(chunks):
-            chunks = [replace(c, role=classify_role_spring_java(c)) for c in chunks]
+        if self._role_classification:
+            chunks = [
+                replace(
+                    c,
+                    layer=classify_layer_by_path(c.file_path),
+                    kind=classify_kind_by_path(c.file_path) or c.kind,
+                )
+                for c in chunks
+            ]
+            if spring_java_pack_applies(chunks):
+                chunks = [replace(c, role=classify_role_spring_java(c)) for c in chunks]
 
         embeddings = self._embedder.embed_batch([c.source_text for c in chunks])
         chunks = [replace(c, embedding=e) for c, e in zip(chunks, embeddings)]
 
-        if any(c.role is None for c in chunks):
+        if self._role_classification and any(c.role is None for c in chunks):
             prototypes = self._semantic_prototypes()
             chunks = [
                 c if c.role is not None else _with_semantic_role(c, prototypes)

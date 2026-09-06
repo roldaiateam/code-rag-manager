@@ -51,6 +51,12 @@ def test_extra_paths_and_auto_include_roundtrip(tmp_path):
     assert project.auto_include is False
 
 
+def test_role_classification_roundtrip(tmp_path):
+    registry = make_registry(tmp_path)
+    registry.register("demo", str(tmp_path), [], role_classification=False)
+    assert registry.get("demo").role_classification is False
+
+
 def test_legacy_entry_without_new_fields_gets_defaults(tmp_path):
     path = tmp_path / "projects.yaml"
     path.write_text(
@@ -62,6 +68,7 @@ def test_legacy_entry_without_new_fields_gets_defaults(tmp_path):
     project = YamlProjectRegistry(str(path)).get("viejo")
     assert project.extra_index_paths == []
     assert project.auto_include is True
+    assert project.role_classification is True
 
 
 def test_defaults_roundtrip(tmp_path):

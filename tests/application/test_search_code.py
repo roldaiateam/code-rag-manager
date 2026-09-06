@@ -38,6 +38,21 @@ def test_search_filters_by_language_and_kind():
     assert [r.chunk.id for r in outcome.results] == ["a"]
 
 
+def test_search_filters_by_role_and_layer():
+    vector_store = FakeVectorStore()
+    vector_store.upsert("p1", [
+        make_chunk(id="a", role="controller", layer="infrastructure"),
+        make_chunk(id="b", role="entity", layer="domain"),
+    ])
+    use_case = SearchCode("p1", FakeEmbedder(), vector_store, FakeLexicalIndex())
+
+    outcome = use_case.execute(SearchQuery(text="algo", role="controller"))
+    assert [r.chunk.id for r in outcome.results] == ["a"]
+
+    outcome = use_case.execute(SearchQuery(text="algo", layer="domain"))
+    assert [r.chunk.id for r in outcome.results] == ["b"]
+
+
 def test_search_flags_low_confidence_when_nothing_indexed():
     # Sin chunks en absoluto: mejor semántico crudo = 0.0 (< 0.35) y mejor
     # léxico crudo = 0.0 (sin hits) -> baja confianza, resultados vacíos.

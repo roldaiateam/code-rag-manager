@@ -104,6 +104,11 @@ def project_add(
         "--no-auto-include",
         help="No detectar código generado (target/generated-sources, build/generated)",
     ),
+    no_role_classification: bool = typer.Option(
+        False,
+        "--no-role-classification",
+        help="No clasificar chunks por capa/rol arquitectónico (domain/controller/entity...)",
+    ),
 ) -> None:
     """Registra un proyecto en el registro global (re-registrar un nombre existente
     sobreescribe su configuración)."""
@@ -116,6 +121,7 @@ def project_add(
             list(language),
             extra_index_paths=list(include),
             auto_include=not no_auto_include,
+            role_classification=not no_role_classification,
         )
     except ValueError as e:
         _fail(str(e))
@@ -124,6 +130,8 @@ def project_add(
         typer.echo(f"  incluye además: {', '.join(project.extra_index_paths)}")
     if not project.auto_include:
         typer.echo("  auto-detección de código generado: desactivada")
+    if not project.role_classification:
+        typer.echo("  clasificación de capa/rol: desactivada")
 
 
 @project_app.command("list")
@@ -205,11 +213,24 @@ def search(
     top_k: int = typer.Option(10, "--top-k"),
     language: str = typer.Option(None, "--language"),
     kind: str = typer.Option(None, "--kind"),
+    role: str = typer.Option(
+        None,
+        "--role",
+        help="Filtrar por rol arquitectónico (controller, entity, use_case, adapter, mapper, config, utility)",
+    ),
+    layer: str = typer.Option(
+        None,
+        "--layer",
+        help="Filtrar por capa arquitectónica (domain, application, infrastructure...)",
+    ),
 ) -> None:
-    """Búsqueda híbrida de depuración, sin pasar por MCP."""
+    """Búsqueda híbrida de depuración, sin pasar por MCP. Filtros opcionales:
+    language, kind, role, layer."""
     uc = _use_cases(project)
     outcome = uc["search_code"].execute(
-        SearchQuery(text=query, top_k=top_k, language=language, kind=kind)
+        SearchQuery(
+            text=query, top_k=top_k, language=language, kind=kind, role=role, layer=layer
+        )
     )
     typer.echo(format_search_results(outcome.results, outcome.low_confidence))
 
@@ -226,10 +247,21 @@ def chunks(
     project: str = PROJECT_OPTION,
     language: str = typer.Option(None, "--language"),
     kind: str = typer.Option(None, "--kind"),
+    role: str = typer.Option(
+        None,
+        "--role",
+        help="Filtrar por rol arquitectónico (controller, entity, use_case, adapter, mapper, config, utility)",
+    ),
+    layer: str = typer.Option(
+        None,
+        "--layer",
+        help="Filtrar por capa arquitectónica (domain, application, infrastructure...)",
+    ),
 ) -> None:
-    """Inventario de chunks indexados (equivalente CLI de list_chunks)."""
+    """Inventario de chunks indexados (equivalente CLI de list_chunks). Filtros
+    opcionales: language, kind, role, layer."""
     uc = _use_cases(project)
-    typer.echo(format_chunks(uc["list_chunks"].execute(language, kind)))
+    typer.echo(format_chunks(uc["list_chunks"].execute(language, kind, role, layer)))
 
 
 @mcp_app.command("serve")

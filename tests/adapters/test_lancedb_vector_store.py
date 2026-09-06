@@ -64,6 +64,26 @@ def test_layer_role_and_confidence_survive_upsert_and_list(tmp_path):
     assert listed["b"].role_confidence is None
 
 
+def test_list_filters_by_role_and_layer(tmp_path):
+    store = LanceDbVectorStore(str(tmp_path))
+    store.upsert("p1", [
+        chunk_with_vector(
+            "a", "controlador", [1.0, 0.0], layer="infrastructure", role="controller",
+        ),
+        chunk_with_vector(
+            "b", "entidad_dominio", [0.0, 1.0], layer="domain", role="entity",
+        ),
+        chunk_with_vector(
+            "c", "entidad_infra", [1.0, 1.0], layer="infrastructure", role="entity",
+        ),
+    ])
+
+    assert [c.id for c in store.list("p1", role="entity")] == ["b", "c"]
+    assert [c.id for c in store.list("p1", layer="infrastructure")] == ["a", "c"]
+    assert [c.id for c in store.list("p1", role="entity", layer="infrastructure")] == ["c"]
+    assert store.list("p1", role="controller", layer="domain") == []
+
+
 def test_search_on_missing_project_returns_empty(tmp_path):
     store = LanceDbVectorStore(str(tmp_path))
     assert store.search("nada", [1.0, 0.0], 5) == []

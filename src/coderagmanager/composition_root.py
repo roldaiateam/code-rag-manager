@@ -91,6 +91,7 @@ def build_use_cases(project_id: str, registry_path: str | None = None) -> dict:
             git=git,
             extra_index_paths=project.extra_index_paths,
             auto_include=project.auto_include,
+            role_classification=project.role_classification,
         ),
         "search_code": SearchCode(project.id, embedder, vector_store, lexical_index),
         "get_dependency_chain": GetDependencyChain(project.id, graph_store),

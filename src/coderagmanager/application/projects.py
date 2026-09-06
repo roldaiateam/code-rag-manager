@@ -17,11 +17,13 @@ class RegisterProject:
         languages: list[str],
         extra_index_paths: list[str] | None = None,
         auto_include: bool = True,
+        role_classification: bool = True,
     ) -> Project:
         return self._registry.register(
             name, root_path, languages,
             extra_index_paths=extra_index_paths,
             auto_include=auto_include,
+            role_classification=role_classification,
         )
 
 

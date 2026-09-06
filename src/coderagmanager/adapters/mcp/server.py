@@ -36,16 +36,24 @@ def build_server(project_id: str, registry_path: str | None = None) -> MCPServer
         top_k: int = 10,
         language: str | None = None,
         kind: str | None = None,
+        role: str | None = None,
+        layer: str | None = None,
     ) -> str:
         """Busca código relevante por significado y por coincidencia léxica en ESTE proyecto.
 
         Úsalo como PRIMER paso al explorar el código, antes de leer ficheros
         directamente. Acepta lenguaje natural ("dónde se valida el email") o
         nombres de símbolo. Filtros opcionales: language ("python",
-        "javascript", "java", "text") y kind ("function", "class", "method"...).
+        "javascript", "java", "text"), kind ("function", "class", "method"...),
+        role (rol arquitectónico, p.ej. "controller", "entity", "use_case",
+        "adapter", "mapper", "config", "utility") y layer (capa arquitectónica,
+        p.ej. "domain", "application", "infrastructure").
         """
         outcome = uc["search_code"].execute(
-            SearchQuery(text=query, top_k=top_k, language=language, kind=kind)
+            SearchQuery(
+                text=query, top_k=top_k, language=language, kind=kind,
+                role=role, layer=layer,
+            )
         )
         return format_search_results(outcome.results, outcome.low_confidence)
 
@@ -82,12 +90,17 @@ def build_server(project_id: str, registry_path: str | None = None) -> MCPServer
         return uc["get_source"].execute(symbol, file_path, start_line, end_line)
 
     @mcp.tool()
-    def list_chunks(language: str | None = None, kind: str | None = None) -> str:
+    def list_chunks(
+        language: str | None = None,
+        kind: str | None = None,
+        role: str | None = None,
+        layer: str | None = None,
+    ) -> str:
         """Inventario filtrado de los chunks indexados en este proyecto.
         Útil para ver qué hay indexado; para buscar por significado usa
         search_code. Se muestran como máximo 200 filas — usa los filtros
-        language/kind para acotar listados grandes."""
-        return format_chunks(uc["list_chunks"].execute(language, kind))
+        language/kind/role/layer para acotar listados grandes."""
+        return format_chunks(uc["list_chunks"].execute(language, kind, role, layer))
 
     @mcp.tool()
     def get_index_stats() -> str:

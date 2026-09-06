@@ -40,7 +40,7 @@ area for planned work, not a permanent backlog or a changelog — see
 | [US-06](US-06-classification-layer-1-path.md)        | Classification layer 1: path vocabulary                                          | Nivel 1                      | —                   | Implemented |
 | [US-07](US-07-classification-layer-2-spring-java.md) | Classification layer 2: `spring-java` pack                                       | Nivel 1                      | —                   | Implemented |
 | [US-08](US-08-classification-layer-3-semantic.md)    | Classification layer 3: semantic prototypes                                      | Nivel 1                      | US-06, US-07        | Implemented |
-| [US-09](US-09-role-layer-filters.md)                 | `--role`/`--layer` filters (CLI + MCP tools)                                     | Nivel 1                      | US-06, US-07, US-08 |             |
+| [US-09](US-09-role-layer-filters.md)                 | `--role`/`--layer` filters (CLI + MCP tools)                                     | Nivel 1                      | US-06, US-07, US-08 | Implemented |
 | [US-10](US-10-role-based-summaries.md)               | Role-based chunk summaries                                                       | Nivel 1 (2nd wave)           | US-06, US-07, US-08 |             |
 | [US-11](US-11-bm25.md)                               | Real BM25 lexical index                                                          | Nivel 2                      | US-04               |             |
 | [US-12](US-12-embedding-provider-voyage.md)          | Additional embedding provider (Voyage AI)                                        | Nivel 2                      | —                   |             |

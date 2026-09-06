@@ -86,6 +86,8 @@ class LanceDbVectorStore:
         project_id: str,
         language: str | None = None,
         kind: str | None = None,
+        role: str | None = None,
+        layer: str | None = None,
     ) -> list[CodeChunk]:
         db = self._connect()
         name = self._table_name(project_id)
@@ -97,6 +99,10 @@ class LanceDbVectorStore:
             chunks = [c for c in chunks if c.language == language]
         if kind is not None:
             chunks = [c for c in chunks if c.kind == kind]
+        if role is not None:
+            chunks = [c for c in chunks if c.role == role]
+        if layer is not None:
+            chunks = [c for c in chunks if c.layer == layer]
         return sorted(chunks, key=lambda c: (c.file_path, c.start_line))
 
     @staticmethod

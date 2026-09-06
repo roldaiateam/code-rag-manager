@@ -13,6 +13,7 @@ class ProjectRegistry(Protocol):
         languages: list[str],
         extra_index_paths: list[str] | None = None,
         auto_include: bool = True,
+        role_classification: bool = True,
     ) -> Project: ...
 
     def get(self, project_id: str) -> Project: ...

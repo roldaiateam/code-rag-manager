@@ -18,7 +18,14 @@ from tests.application.fakes import (
 FIXTURE_REPO = Path(__file__).parent.parent / "fixtures" / "sample_repo"
 
 
-def build(root: str, vector_store=None, graph_store=None, parser=None, embedder=None):
+def build(
+    root: str,
+    vector_store=None,
+    graph_store=None,
+    parser=None,
+    embedder=None,
+    role_classification=True,
+):
     return IndexProject(
         project_id="demo",
         root_path=root,
@@ -28,6 +35,7 @@ def build(root: str, vector_store=None, graph_store=None, parser=None, embedder=
         graph_store=graph_store or FakeGraphStore(),
         lexical_index=FakeLexicalIndex(),
         git=FakeGit(),
+        role_classification=role_classification,
     )
 
 
@@ -203,3 +211,33 @@ def test_index_with_no_files_does_not_compute_prototype_embeddings(tmp_path):
     build(str(tmp_path), embedder=embedder).execute()
 
     assert embedder.calls == [[]]
+
+
+def test_role_classification_can_be_disabled(tmp_path):
+    (tmp_path / "infrastructure").mkdir()
+    (tmp_path / "infrastructure" / "FooController.java").write_text(
+        "package foo.infrastructure;\n@RestController\npublic class FooController {}\n"
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "FooControllerTest.java").write_text(
+        "package foo.tests;\npublic class FooControllerTest {}\n"
+    )
+
+    vector_store, embedder = FakeVectorStore(), FakeEmbedder()
+    build(
+        str(tmp_path),
+        vector_store,
+        parser=TreeSitterJavaParser(),
+        embedder=embedder,
+        role_classification=False,
+    ).execute()
+
+    chunks = vector_store.data["demo"]
+    assert all(c.layer is None for c in chunks)
+    assert all(c.role is None for c in chunks)
+    assert all(c.role_confidence is None for c in chunks)
+    by_symbol = {c.symbol: c for c in chunks}
+    assert by_symbol["FooControllerTest"].kind == "class"
+    # sin capa 3: la única llamada al embedder es la de source_text, no la
+    # de los 7 prototipos semánticos.
+    assert len(embedder.calls) == 1

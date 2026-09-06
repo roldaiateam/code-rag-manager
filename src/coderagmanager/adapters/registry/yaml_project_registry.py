@@ -36,6 +36,7 @@ class YamlProjectRegistry:
         languages: list[str],
         extra_index_paths: list[str] | None = None,
         auto_include: bool = True,
+        role_classification: bool = True,
     ) -> Project:
         project_id = re.sub(r"[^a-z0-9_-]+", "-", name.lower()).strip("-")
         if not project_id:
@@ -50,6 +51,7 @@ class YamlProjectRegistry:
             "languages": languages,
             "extra_index_paths": list(extra_index_paths or []),
             "auto_include": auto_include,
+            "role_classification": role_classification,
             "last_indexed_commit": None,
             "last_indexed_at": None,
         }
@@ -69,6 +71,7 @@ class YamlProjectRegistry:
             last_indexed_at=entry.get("last_indexed_at"),
             extra_index_paths=entry.get("extra_index_paths", []),
             auto_include=entry.get("auto_include", True),
+            role_classification=entry.get("role_classification", True),
         )
 
     def list(self) -> list[Project]:

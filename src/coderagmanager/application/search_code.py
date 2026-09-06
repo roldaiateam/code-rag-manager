@@ -37,6 +37,10 @@ class SearchCode:
             results = [r for r in results if r.chunk.language == query.language]
         if query.kind is not None:
             results = [r for r in results if r.chunk.kind == query.kind]
+        if query.role is not None:
+            results = [r for r in results if r.chunk.role == query.role]
+        if query.layer is not None:
+            results = [r for r in results if r.chunk.layer == query.layer]
         results = results[: query.top_k]
         if low_confidence:
             results = results[:3]

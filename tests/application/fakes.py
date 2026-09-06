@@ -36,12 +36,16 @@ class FakeVectorStore:
             for i, c in enumerate(self.data.get(project_id, [])[:top_k])
         ]
 
-    def list(self, project_id, language=None, kind=None) -> list[CodeChunk]:
+    def list(self, project_id, language=None, kind=None, role=None, layer=None) -> list[CodeChunk]:
         chunks = self.data.get(project_id, [])
         if language is not None:
             chunks = [c for c in chunks if c.language == language]
         if kind is not None:
             chunks = [c for c in chunks if c.kind == kind]
+        if role is not None:
+            chunks = [c for c in chunks if c.role == role]
+        if layer is not None:
+            chunks = [c for c in chunks if c.layer == layer]
         return chunks
 
 

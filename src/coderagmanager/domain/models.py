@@ -52,6 +52,7 @@ class Project:
     last_indexed_at: str | None = None
     extra_index_paths: list[str] = field(default_factory=list)
     auto_include: bool = True    # detectar código generado (Maven/Gradle) aunque esté gitignorado
+    role_classification: bool = True  # clasificar chunks por layer/role (capas 1-3)
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,8 @@ class SearchQuery:
     top_k: int = 10
     language: str | None = None
     kind: str | None = None
+    role: str | None = None
+    layer: str | None = None
 
 
 @dataclass(frozen=True)

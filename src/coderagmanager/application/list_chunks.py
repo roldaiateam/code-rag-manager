@@ -10,6 +10,12 @@ class ListChunks:
         self._vector_store = vector_store
 
     def execute(
-        self, language: str | None = None, kind: str | None = None
+        self,
+        language: str | None = None,
+        kind: str | None = None,
+        role: str | None = None,
+        layer: str | None = None,
     ) -> list[CodeChunk]:
-        return self._vector_store.list(self._project_id, language=language, kind=kind)
+        return self._vector_store.list(
+            self._project_id, language=language, kind=kind, role=role, layer=layer
+        )

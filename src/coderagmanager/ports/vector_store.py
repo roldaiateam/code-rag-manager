@@ -25,4 +25,6 @@ class VectorStore(Protocol):
         project_id: str,
         language: str | None = None,
         kind: str | None = None,
+        role: str | None = None,
+        layer: str | None = None,
     ) -> list[CodeChunk]: ...
